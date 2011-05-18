@@ -46,7 +46,7 @@ So quick demo for results
 			HAM justs wraps around the zmq calls to add translation and FT methods
 	Implementation procedure
 		Write the app skeleton
-		Rip out Nick's tcp/ip code and use that for basic comms
+		: Rip out Nick's tcp/ip code and use that for basic comms
 		Replace tcp/ip with zmq
 		Get numbers for both
 		Add FT methods

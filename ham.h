@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -17,6 +18,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <queue>
+#include <iostream>
 
 
 enum message_t {mFAILURE, mUNKNOWN, mEMPTY, mHEARTBEAT, mDATA};
@@ -61,4 +63,8 @@ class Connection {
 //  private:
 //    Connection link;
 //};
+
+
+timespec diff(timespec end, timespec begin);
+
 #endif /* HAM_H_ */

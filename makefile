@@ -1,9 +1,8 @@
-all: 
-#	gcc -lzmq -o zserver zmqTestServer.c
-#	gcc -lzmq -o zclient zmqTestClient.c
-#	gcc -lzmq -o server tcpTestServer.c
-#	gcc -lzmq -o client tcpTestClient.c
+hamz: 
+	g++ -Wall -c hamz.cpp
+	g++ -lzmq -lrt -o hamz hamz.o
+ham: 
 	g++ -Wall -c ham.cpp
+	g++ -lrt -o ham ham.o
 clean:
-#	rm client server zclient zserver *.o
-	rm *.o
+	rm *.o hamz

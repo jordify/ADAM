@@ -19,6 +19,8 @@
 #include <signal.h>
 #include <queue>
 #include <iostream>
+#include <zmq.hpp>
+#include <zmq_utils.h>
 
 
 enum message_t {mFAILURE, mUNKNOWN, mEMPTY, mHEARTBEAT, mDATA};
@@ -45,13 +47,16 @@ class Connection {
   public:
     Connection();
     ~Connection();
-    void initU(bool isServer, const char* path);
     void initI(bool isServer, unsigned short port, char* hostName);
+    void initZ(bool isServer, unsigned short port, char* hostName);
     int send(const void* data, int msgSize = -1);
+    void zreceive(Message& msg) throw (Except);
     void receive(Message& msg, double timeout = 0, clock_t start = clock()) throw (Except);
     void finish();
   private:
     int socketID;
+    void* ctx;
+    void* zSocket;
 };
 
 

@@ -47,15 +47,12 @@ So quick demo for results
 	Implementation procedure
 		Write the app skeleton
 		Rip out Nick's tcp/ip code and use that for basic comms
-		Make it take in cli arguments for varying msg size
 		----------------------------------------
+		Make it take in cli arguments for varying msg size
+			Doesn't handle msgs > 3000B
 		Replace tcp/ip with zmq
+			Debug
 		Add CRC32
-		Get numbers
-			raw
-			zmq
-			ftzmq
-		Make slides
 Making zeroMQ work on compute-0-{0,1}
 	./configure --prefix=/usr --libdir=/usr/lib64
 	make
@@ -68,14 +65,11 @@ Making zeroMQ work on compute-0-{0,1}
 	ZeroMQ 2.1.7: ./configure AS ABOVE && make && make install
 	pyzmq 2.1.7: python2.7 setup.py --zmq=/usr/lib64 install
 	Test: python -c "import zmq"
-
 PLAN BBBBBBBBBBEEEEEEEEEE:
 	Need to implement still
-		TCP
-		Benchmark.runTests()
-			for each mw in mwSet:
-				for each size in sizes:
-					lats.append(testLat(mw, size, reps))
-					thrs.append(testThr(mw, size, reps))
-				self.writeCSV()
-		Benchmark.testThr()
+	Benchmark.runTests()
+		for each mw in mwSet:
+			for each size in sizes:
+				lats.append(testLat(mw, size, reps))
+				thrs.append(testThr(mw, size, reps))
+			self.writeCSV()

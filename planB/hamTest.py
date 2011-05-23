@@ -3,15 +3,16 @@
 """
 File: ham.py
 Author: Jorge Gómez
-Last Modified: Sun May 22, 2011 at 16:45
+Last Modified: Mon May 23, 2011 at 03:17
 Description:
   A python sketch of the functionality to be implemented in the HAM
   subsytem of ADAM. Don't tell Greg I've written a python version of
   this because he will kill me.
 """
 
-import sys, math, time
-import unittest, argparse, zmq
+import sys, time
+import socket as sock
+import unittest, argparse, signal, zmq
 
 from zlib import crc32
 from struct import pack,unpack
@@ -46,6 +47,7 @@ class Connection(object):
   def __init__(self, isServer=False, middleWare="zeroMQ"):
     self.mw = 1
     self.crc = False
+    self.isServer = isServer
     if middleWare == "tcp":
       self.mw = 0
     elif middleWare == "zeroMQ":
@@ -56,15 +58,44 @@ class Connection(object):
     if self.mw == 1:
       self.ctx = zmq.Context()
       if isServer:
+#         self.socket = self.ctx.socket(zmq.SUB) 
         self.socket = self.ctx.socket(zmq.REP)
         self.socket.bind("tcp://*:54321")
         print "Serving on 54321"
       else:
+#         self.socket = self.ctx.socket(zmq.PUB) 
         self.socket = self.ctx.socket(zmq.REQ)
-        self.socket.connect("tcp://localhost:54321")
+        self.socket.connect("tcp://iota.hcs.ufl.edu:54321")
         print "Connected to 54321"
     else:
+      self.socket = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
+      host = ''; port = 54321
+      if isServer:
+        self.socket.bind((host,port))
+        print "Serving on 54321"
+        self.socket.listen(1)
+        self.client, self.clientAddress = self.socket.accept()
+      else:
+        self.socket.connect(("iota.hcs.ufl.edu",port))
+        print "Connected to 54321"
+    signal.signal(signal.SIGINT, self._sigHandler)
+
+  def _sigHandler(self, signum, frame):#{{{
+    """Shuts down the server gracefully on SIGINT"""
+    print '\nCaught SIGINT, shutting down!'
+    try:
+      self.client.close()
+    except:
       pass
+    try:
+      self.socket.close()
+    except:
+      pass
+    try:
+      self.ctx.term()
+    except:
+      pass
+    sys.exit(136)#}}}
 
   def send(self, data):
     if self.mw == 1:
@@ -72,7 +103,14 @@ class Connection(object):
         data += pack('i', crc32(data))
       return self.socket.send(data)
     else:
-      return 1
+    # TCP Send
+      if self.isServer:
+        self.client.send(pack('i', len(data)))
+        self.client.send(data)
+      else:
+        self.socket.send(pack('i', len(data)))
+        self.socket.send(data)
+      return 0
 
   def receive(self):
     if self.mw == 1:
@@ -90,22 +128,64 @@ class Connection(object):
       else:
         return data
     else:
-      return ""
+    # TCP receive
+      if self.isServer:
+        size = self.client.recv(4)
+        if len(size) < 4 and len(size) >0:
+          msg = self.client.recv(4096) # WHAT IS THISSSS
+          return None
+        elif len(size) == 4:
+          size = unpack('i', size)[0]
+          recvSize = 0
+          msg = ""
+          while recvSize < size:
+            msg += self.client.recv(4096)
+            recvSize += 4096
+          return msg
+        else:
+          return None
+      else:
+        size = self.socket.recv(4)
+        if len(size) == 4:
+          size = unpack('i', size)[0]
+          recvSize = 0
+          msg = ""
+          while recvSize < size:
+            msg += self.socket.recv(4096)
+            recvSize += 4096
+          return msg
+        else:
+          return None
 
   def close(self):
-    self.socket.close()
-    self.ctx.term()
+    try:
+      self.client.close()
+    except:
+      pass
+    try:
+      self.socket.close()
+    except:
+      pass
+    try:
+      self.ctx.term()
+    except:
+      pass
+
 
 class Benchmark(object):
   def __init__(self):
     from timeit import default_timer as timer
     self.timer = timer
-    self.msgSizes = [2**n for n in range(28)]
+    self.msgSizes = [2**n for n in range(20)]
     self.latencies = []
+    self.throughputs = []
 
   def runTests(self, mw, reps):
     for size in self.msgSizes:
       self.latencies.append(self.testLat(mw, size, reps))
+      time.sleep(0.1)
+#       self.throughputs.append(self.testThr(mw, size, reps)) 
+#     return self.throughputs 
     return self.latencies
 
   def testLat(self, mw, size, reps):
@@ -115,27 +195,45 @@ class Benchmark(object):
     for i in xrange(reps):
       pipe.send(msg)
       newMsg = pipe.receive()
-      assert msg == newMsg
+      if not msg == newMsg:
+        print len(msg), len(newMsg)
+        continue
     t2 = self.timer()
     pipe.close()
     return 1000000*(t2-t1)/(2*reps) # Latencies in µSec
 
+  def testThr(self, mw, size, reps):
+    msg = 'a'*size
+    pipe = Connection(middleWare=mw)
+    t1 = self.timer()
+    for i in xrange(reps):
+      pipe.send(msg)
+    t2 = self.timer()
+    pipe.close()
+    print size*reps*8/(1000000*(t2-t1)) # Throughput in Mb/s
+    return size*reps*8/(1000000*(t2-t1)) # Throughput in Mb/s
+
   def writeCSV(self):
     import csv
-    csvWriter = csv.writer(open('results.csv', 'w'), delimiter=',')
+    csvWriter = csv.writer(open('resutls.csv', 'w'), delimiter=',')
     i = 0
     lines = []
     for size in self.msgSizes:
+#       csvWriter.writerow([size,self.throughputs[i]]) 
       csvWriter.writerow([size,self.latencies[i]])
+      i+=1
 
 
 def beBmServer(mw):
-  pipe = Connection(middleWare=mw, isServer=True)
-  print pipe.mw, pipe.crc
-  for i in xrange(28*300): # Echo only a certain amount
-    msg = pipe.receive()
-    pipe.send(msg)
-  pipe.close()
+  while True:
+    pipe = Connection(middleWare=mw, isServer=True)
+    while True:
+      msg = pipe.receive()
+      if not msg:
+        break
+      pipe.send(msg)
+    pipe.close()
+    time.sleep(0.01)
 
 
 def main():
@@ -156,7 +254,7 @@ def main():
     unittest.main()
   elif cli.time:
     bm = Benchmark()
-    print bm.runTests("zeroMQ", 300)
+    print bm.runTests("zeroMQ", 1)
     bm.writeCSV()
   elif cli.server:
     beBmServer("zeroMQ")

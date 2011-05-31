@@ -19,28 +19,10 @@
 #include <signal.h>
 #include <queue>
 #include <iostream>
-#include <zmq.hpp>
-#include <zmq_utils.h>
 
 
 enum message_t {mFAILURE, mUNKNOWN, mEMPTY, mHEARTBEAT, mDATA};
 enum Except {eTIMEOUT, eBADDATA, eFAILURE, eERROR};
-
-
-class Message {
-  public:
-    Message();
-    Message(message_t type, void* data, int dataLengt);
-    ~Message();
-    void set(message_t type, void* data, int dataLengt);
-    message_t getType();
-    int getDataLength();
-    void* getData();
-  private:
-    message_t type;
-    int dataLength;
-    void* data;
-};
 
 
 class Connection {
@@ -48,26 +30,14 @@ class Connection {
     Connection();
     ~Connection();
     void initI(bool isServer, unsigned short port, char* hostName);
-    void initZ(bool isServer, unsigned short port, char* hostName);
     int send(const void* data, int msgSize = -1);
-    void zreceive(Message& msg) throw (Except);
-    void receive(Message& msg, double timeout = 0, clock_t start = clock()) throw (Except);
+    //void* receive(Message& msg, double timeout = 0, clock_t start = clock()) throw (Except);
+    void* receive(double timeout = 0, clock_t start = clock()) throw (Except);
     void finish();
   private:
     int socketID;
-    void* ctx;
-    void* zSocket;
+    int sockfd;
 };
-
-
-//class Ham {
-//  public:
-//    Ham();
-//    ~Ham();
-//    void init(bool isServer);
-//  private:
-//    Connection link;
-//};
 
 
 timespec diff(timespec end, timespec begin);

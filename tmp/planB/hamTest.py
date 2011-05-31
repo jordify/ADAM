@@ -3,7 +3,7 @@
 """
 File: ham.py
 Author: Jorge Gómez
-Last Modified: Tue May 24, 2011 at 14:53
+Last Modified: Mon May 23, 2011 at 10:31
 Description:
   A python sketch of the functionality to be implemented in the HAM
   subsytem of ADAM. Don't tell Greg I've written a python version of
@@ -233,10 +233,10 @@ def main():
     unittest.main()
   elif cli.time:
     bm = Benchmark()
-    print bm.runTests("FTzeroMQ", 30)
+    print bm.runTests("zeroMQ", 30)
     bm.writeCSV()
   elif cli.server:
-    beBmServer("FTzeroMQ")
+    beBmServer("zeroMQ")
 
 if __name__=='__main__':
   print "ZermoMQ Version:", zmq.zmq_version()

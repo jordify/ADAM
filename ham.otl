@@ -32,6 +32,8 @@ On message receipt from an application
 			Check state
 			Get address from topology parser
 			Open a connection to it
+Additions
+	Interleave the CRC and zending
 So quick demo for results
 	Point to point comms from an external application
 		App -> ham library -> ham library -> App

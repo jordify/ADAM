@@ -47,7 +47,7 @@ timespec diff(timespec end, timespec begin);
 
 #endif /* HAM_H_ */
 
-/* 
+/* {{{
  * Debug:
  *
 	printf("msg is: %d bytes\n", strlen(msgBody));
@@ -75,4 +75,4 @@ timespec diff(timespec end, timespec begin);
         timespec ts_elapsed = diff(end, begin);
         elapsed = (long)ts_elapsed.tv_sec*1000000 + (long)ts_elapsed.tv_nsec/1000;
         latency = (double) elapsed/(roundtripCount * 2); 
- */
+        }}}*/

@@ -3,11 +3,10 @@
 """
 File: ham.py
 Author: Jorge Gómez
-Last Modified: Tue May 24, 2011 at 14:53
+Last Modified: Fri Jun 03, 2011 at 18:50
 Description:
   A python sketch of the functionality to be implemented in the HAM
-  subsytem of ADAM. Don't tell Greg I've written a python version of
-  this because he will kill me.
+  subsytem of ADAM.
 """
 
 import sys, time

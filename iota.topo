@@ -1,94 +1,21 @@
 <?xml version="1.0"?>
-<topology name="Iota">
-
-  <network type="gigE" speed="1000">
-    Network A
-  </network>
-
-  <network type="fastE" speed="100">
-    Network B
-  </network>
-
-  <node name="compute-0-0">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
+<topology>
+  <network name="Network A" type="gigE" speed="1000"/>
+  <network name="Network B" type="fastE" speed="100"/>
+  <node name="compute-0-0" cpuCount="4" radHard="False">
+      <link>Network A</link>
+      <link>Network B</link>
   </node>
-  <node name="compute-0-1">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
+  <node name="compute-0-1" cpuCount="4" radHard="False">
+      <link>Network A</link>
+      <link>Network B</link>
   </node>
-  <node name="compute-0-2">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
+  <node name="compute-0-2" cpuCount="4" radHard="False">
+      <link>Network A</link>
+      <link>Network B</link>
   </node>
-  <node name="compute-0-3">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
+  <node name="compute-0-3" cpuCount="4" radHard="False">
+      <link>Network A</link>
+      <link>Network B</link>
   </node>
-  <node name="compute-0-4">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <!--
-  <node name="compute-0-5">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-6">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-7">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-8">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-9">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-10">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-11">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-12">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-13">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-14">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
-  <node name="compute-0-15">
-    <link>Network A</link>
-    <link>Network B</link>
-    <cpuCount radHard="False">4</cpuCount>
-  </node>
--->
 </topology>

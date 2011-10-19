@@ -1,5 +1,6 @@
-CFLAGS=-g -Wall
-LDFLAGS=-lzmq
+CC=gcc
+CFLAGS=-g -Wall -I/usr/include/libxml2
+LDFLAGS=-lz -lm -lxml2
 
 all: addamd
 

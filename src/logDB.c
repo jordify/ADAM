@@ -13,7 +13,7 @@ error:
 }
 
 static Connection* Database_open(const char* filename, char mode) {
-    Connection* conn = malloc(sizeof(Connection));
+    Connection* conn = (Connection*)malloc(sizeof(Connection));
     check(conn, "Memory error")
 
     conn->db = (Database*)malloc(sizeof(Database));
@@ -33,7 +33,9 @@ static Connection* Database_open(const char* filename, char mode) {
 
 error:
     if(conn->db) free(conn->db);
+    conn->db = NULL;
     if(conn) free(conn);
+    conn = NULL;
     return(NULL);
 }
 
@@ -41,11 +43,20 @@ static void Database_close(Connection* conn) {
     if (conn) {
         if (conn->file) fclose(conn->file);
         if (conn->db) free(conn->db);
+        conn->db = NULL;
+        conn->file = NULL;
         free(conn);
+        conn = NULL;
+    } else {
+        sentinel("No conn pointer");
     }
+
+error:
+    free(conn);
+    conn = NULL;
 }
 
-static void Database_write(Connection* conn) {
+static int Database_write(Connection* conn) {
     rewind(conn->file);
 
     int rc = fwrite(conn->db, sizeof(Database), 1, conn->file);
@@ -54,8 +65,10 @@ static void Database_write(Connection* conn) {
     rc = fflush(conn->file);
     check(!(rc == -1), "Cannot flush database RC=%d", rc);
 
+    return(0);
+
 error:
-    return;
+    return(-1);
 }
 
 static void Database_create(Connection* conn) {
@@ -68,27 +81,26 @@ static void Database_create(Connection* conn) {
     }
 }
 
-static void Database_set(Connection* conn, int id, const char* message) {
-    Address* addr = &conn->db->rows[id];
+static int Database_set(Connection* conn, int id, const char* message) {
+    Address* addr = &(conn->db->rows[id]);
     check(!(addr->set), "Already set, delete it first.");
 
     addr->set = 1;
-    // WARNING: bug, read the "How To Break It" and fix this
     char* res = strncpy(addr->message, message, MAX_DATA);
-    // demonstrate the strncpy bug
     check(res, "Message copy failed.");
+    return(0);
 
 error:
-    return;
+    return(1);
 }
 
 static void Database_get(Connection *conn, int id) {
-    Address* addr = &conn->db->rows[id];
+    Address* addr = &(conn->db->rows[id]);
 
     if (addr->set) {
         Address_print(addr);
     } else {
-        sentinel("ID is not set");
+        sentinel("Row is not set");
     }
 
 error:
@@ -112,15 +124,21 @@ static void Database_list(Connection* conn) {
     }
 }
 
-int Database_access(char command, ...) {
-    va_list argp;
-    va_start(argp, command);
+int main(int argc, char* argv[]) {
     char* filename = "log.db";
-    char* message = NULL;
     int id = 0;
+    int rc = -1;
+
+    check(argc > 1, "\nUsage:\n\t%s <command> [command args]", argv[0]);
+    char command = argv[1][0];
 
     Connection* conn = Database_open(filename, command);
     check(conn, "Couldn't open db");
+
+    if (argc > 2) {
+        id = atoi(argv[2]);
+        check(((id < MAX_ROWS) && (id>0)), "There's not that many records.");
+    }
 
     switch(command) {
         case 'c':
@@ -128,23 +146,28 @@ int Database_access(char command, ...) {
             Database_write(conn);
             break;
         case 'g':
-            id = va_arg(argp, int);
-            check(id > 0, "Failed to get ID");
-            Database_get(conn, id);
+            if(argc!=3) {
+                sentinel("Need an id to get.");
+            } else {
+                Database_get(conn, id);
+            }
             break;
         case 's':
-            id = va_arg(argp, int);
-            check(id > 0, "Failed to get ID");
-            message = va_arg(argp, char*);
-            check(message, "Failed to get Message to write");
-            Database_set(conn, id, message);
-            Database_write(conn);
+            if(argc!=4) {
+                sentinel("Need an id and message to set.");
+            } else {
+                rc = Database_set(conn, id, argv[3]);
+                check(rc==0, "Failed to set memory.");
+                Database_write(conn);
+            }
             break;
         case 'd':
-            id = va_arg(argp, int);
-            check(id > 0, "Failed to get ID");
-            Database_delete(conn, id);
-            Database_write(conn);
+            if(argc!=3) {
+                sentinel("Need an id to delete.");
+            } else {
+                Database_delete(conn, id);
+                Database_write(conn);
+            }
             break;
         case 'l':
             Database_list(conn);

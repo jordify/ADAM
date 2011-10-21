@@ -2,7 +2,7 @@
  * File: logDB.h
  * Author: Jorge Gomez
  * License: meh
- * Last Modified: Fri Oct 21, 2011 at 00:06
+ * Last Modified: Fri Oct 21, 2011 at 14:33
  ***/
 #ifndef _logDB_h
 #define _logDB_h
@@ -33,7 +33,6 @@ typedef struct Connection {
     Database* db;
 } Connection;
 
-int Database_access(char command, ...);
 /* Commands (for now):
  *      'c'                     - create a new database
  *      'g', int id             - get message at id

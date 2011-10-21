@@ -3,19 +3,17 @@
   <network name="Network A" type="gigE" speed="1000"/>
   <network name="Network B" type="fastE" speed="100"/>
   <node name="compute-0-0" cpuCount="4" radHard="False">
-      <link>Network A</link>
-      <link>Network B</link>
+    <link network="Network A" />
+    <link network="Network B" />
   </node>
   <node name="compute-0-1" cpuCount="4" radHard="False">
-      <link>Network A</link>
-      <link>Network B</link>
+    <link network="Network A" />
+    <link network="Network B" />
   </node>
   <node name="compute-0-2" cpuCount="4" radHard="False">
-      <link>Network A</link>
-      <link>Network B</link>
+    <link network="Network A" />
   </node>
   <node name="compute-0-3" cpuCount="4" radHard="False">
-      <link>Network A</link>
-      <link>Network B</link>
+    <link network="Network A" />
   </node>
 </topology>

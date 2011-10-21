@@ -2,9 +2,8 @@
  * File: topology.h
  * Author: Jorge Gomez
  * License: meh
- * Last Modified: Wed Oct 19, 2011 at 02:28
- ***
- */
+ * Last Modified: Fri Oct 21, 2011 at 01:37
+ ***/
 #ifndef _topology_h
 #define _topology_h
 

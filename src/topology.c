@@ -77,9 +77,7 @@ Topology* Topology_init(unsigned int numLinks, unsigned int numNodes) {
 }
 
 static void Topology_parseNetworkNode(Topology* topo, xmlNode* node) {
-    /* Networks just have attributes
-     * TODO: Fix mem leak
-     */
+    /* Networks just have attributes */
     static int i = 0;
     char* name;
     char* type;
@@ -100,30 +98,33 @@ static void Topology_parseNetworkNode(Topology* topo, xmlNode* node) {
             fprintf(stderr, "Bad attribute in Network node\n");
     }
     printf("%s %s %d %d\n", name, type, atoi(speed), i);
-    topo->allLinks[i]->id = i;
-    topo->allLinks[i]->name = name;
-    topo->allLinks[i]->type = type;
-    topo->allLinks[i]->speed = atoi(speed);
-    /** Causes glibc to crash
-    free(name);
-    free(type);
-    free(speed);
-    */
+    topo->allLinks[i] = Network_init(i, name, type, (unsigned int)atoi(speed));
+
     i++;
 }
 
+static int Topology_matchName(Topology* topo, char* linkName) {
+    /* Using linkName, return link ID */
+    int i;
+    for (i=0; i<topo->linkCount; i++)
+        if(!strcmp(topo->allLinks[i]->name, linkName))
+            break;
+    return (i);
+}
+
 static void Topology_parseNodeNode(Topology* topo, xmlNode* node) {
-    /* Nodes have attributes and children denoting links
-     * TODO: Implement Links, fix mem leak
-     */
+    /* Nodes have attributes and children denoting links */
     static int i = 0;
     char* name;
     char* cpuCount;
     char* radHard;
+    unsigned int* linkIDs = malloc(topo->linkCount*sizeof(int));
+    unsigned int assLinkCount = 0;
 
     xmlAttr* curAttr = node->properties;
     char* curAttrName;
 
+    /* Attributes of the node */
     for (; curAttr; curAttr = curAttr->next) {
         curAttrName = (char*)curAttr->name;
         if (!strcmp(curAttrName, "name"))
@@ -135,15 +136,22 @@ static void Topology_parseNodeNode(Topology* topo, xmlNode* node) {
         else
             fprintf(stderr, "Bad attribute in Network node\n");
     }
-    printf("%s %s %d %d\n", name, radHard, atoi(cpuCount), i);
-    topo->allNodes[i]->id = i;
-    topo->allNodes[i]->radHard = (strncmp(radHard,"False",1)) ? 0 : 1;
-    topo->allNodes[i]->cpuCount = (unsigned char) atoi(cpuCount);
-    /** Causes glibc to crash
-    free(name);
-    free(cpuCount);
-    free(radHard);
-    */
+
+    /* Children (networks associated with the node) */
+    xmlNode* child = node->children;
+    for (; child; child = child->next) {
+        curAttr = child->properties;
+        for (; curAttr; curAttr = curAttr->next) {
+            linkIDs[assLinkCount] = Topology_matchName(topo, (char*)curAttr->children->content);
+            assLinkCount++;
+        }
+    }
+
+    bool rh = (strncmp(radHard,"False",1)) ? 0 : 1;
+    topo->allNodes[i] = Node_init(i, name, (unsigned char) atoi(cpuCount), rh); 
+    Node_addLinks(topo->allNodes[i], assLinkCount, linkIDs, topo->allLinks);
+
+    free(linkIDs);
     i++;
 }
 
@@ -179,7 +187,8 @@ int Topology_parseStatic(Topology* topo, const char* topoFileName) {
 
     Topology_parseElement(topo, root_element);
 
-    xmlFreeDoc(doc);
+    xmlFree(root_element);
+    xmlFreeDoc(doc); // This leaks
     xmlCleanupParser();
 
     return (0);

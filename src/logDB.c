@@ -1,30 +1,23 @@
 #include "logDB.h"
 
-static void die(const char* message) {
-    if (errno) {
-        perror(message);
-    } else {
-        printf("Error: %s\n", message);
-    }
-    exit(1);
+static void Address_print(Address* addr) {
+    printf("%d %s\n", addr->id, addr->message);
 }
 
-void Address_print(Address* addr) {
-    printf("%d %s %s\n",
-            addr->id, addr->name, addr->email);
-}
-
-void Database_load(Connection* conn) {
+static void Database_load(Connection* conn) {
     int rc = fread(conn->db, sizeof(Database), 1, conn->file);
-    if (rc != 1) die("Failed to load database.");
+    check(rc == 1, "Failed to load database.");
+
+error:
+    return;
 }
 
-Connection* Database_open(const char* filename, char mode) {
+static Connection* Database_open(const char* filename, char mode) {
     Connection* conn = malloc(sizeof(Connection));
-    if (!conn) die("Memory error");
+    check(conn, "Memory error")
 
-    conn->db = malloc(sizeof(Database));
-    if (!conn->db) die("Memory error");
+    conn->db = (Database*)malloc(sizeof(Database));
+    check(conn->db, "Memory error");
 
     if (mode == 'c') {
         conn->file = fopen(filename, "w");
@@ -35,11 +28,16 @@ Connection* Database_open(const char* filename, char mode) {
         }
     }
 
-    if (!conn->file) die("Failed to open the file");
+    check(conn->file, "Failed to open the file");
     return conn;
+
+error:
+    if(conn->db) free(conn->db);
+    if(conn) free(conn);
+    return(NULL);
 }
 
-void Database_close(Connection* conn) {
+static void Database_close(Connection* conn) {
     if (conn) {
         if (conn->file) fclose(conn->file);
         if (conn->db) free(conn->db);
@@ -47,17 +45,20 @@ void Database_close(Connection* conn) {
     }
 }
 
-void Database_write(Connection* conn) {
+static void Database_write(Connection* conn) {
     rewind(conn->file);
 
     int rc = fwrite(conn->db, sizeof(Database), 1, conn->file);
-    if (rc != 1) die("Failed to write database.");
+    check(rc==1, "Failed to write database.");
 
     rc = fflush(conn->file);
-    if (rc == -1) die("Cannot flush database.");
+    check(!(rc == -1), "Cannot flush database RC=%d", rc);
+
+error:
+    return;
 }
 
-void Database_create(Connection* conn) {
+static void Database_create(Connection* conn) {
     int i;
     for(i = 0; i < MAX_ROWS; i++) {
         // make a prototype to initialize it
@@ -67,36 +68,39 @@ void Database_create(Connection* conn) {
     }
 }
 
-void Database_set(Connection* conn, int id, const char* name, const char* email) {
+static void Database_set(Connection* conn, int id, const char* message) {
     Address* addr = &conn->db->rows[id];
-    if (addr->set) die("Already set, delete it first.");
+    check(!(addr->set), "Already set, delete it first.");
 
     addr->set = 1;
     // WARNING: bug, read the "How To Break It" and fix this
-    char* res = strncpy(addr->name, name, MAX_DATA);
+    char* res = strncpy(addr->message, message, MAX_DATA);
     // demonstrate the strncpy bug
-    if (!res) die("Name copy failed.");
+    check(res, "Message copy failed.");
 
-    res = strncpy(addr->email, email, MAX_DATA);
-    if (!res) die("Email copy failed.");
+error:
+    return;
 }
 
-void Database_get(Connection *conn, int id) {
+static void Database_get(Connection *conn, int id) {
     Address* addr = &conn->db->rows[id];
 
     if (addr->set) {
         Address_print(addr);
     } else {
-        die("ID is not set");
+        sentinel("ID is not set");
     }
+
+error:
+    return;
 }
 
-void Database_delete(Connection* conn, int id) {
+static void Database_delete(Connection* conn, int id) {
     Address addr = {.id = id, .set = 0};
     conn->db->rows[id] = addr;
 }
 
-void Database_list(Connection* conn) {
+static void Database_list(Connection* conn) {
     int i;
     Database* db = conn->db;
 
@@ -108,36 +112,37 @@ void Database_list(Connection* conn) {
     }
 }
 
-int Database_access(int argc, char* argv[]) {
-    if (argc < 3) die("USAGE: ex17 <dbfile> <action> [action params]");
-
-    char* filename = argv[1];
-    char action = argv[2][0];
-    Connection* conn = Database_open(filename, action);
+int Database_access(char command, ...) {
+    va_list argp;
+    va_start(argp, command);
+    char* filename = "log.db";
+    char* message = NULL;
     int id = 0;
 
-    if (argc > 3) id = atoi(argv[3]);
-    if (id >= MAX_ROWS) die("There's not that many records.");
+    Connection* conn = Database_open(filename, command);
+    check(conn, "Couldn't open db");
 
-    switch(action) {
+    switch(command) {
         case 'c':
             Database_create(conn);
             Database_write(conn);
             break;
         case 'g':
-            if (argc != 4) die("Need an id to get");
-
+            id = va_arg(argp, int);
+            check(id > 0, "Failed to get ID");
             Database_get(conn, id);
             break;
         case 's':
-            if (argc != 6) die("Need id, name, email to set");
-
-            Database_set(conn, id, argv[4], argv[5]);
+            id = va_arg(argp, int);
+            check(id > 0, "Failed to get ID");
+            message = va_arg(argp, char*);
+            check(message, "Failed to get Message to write");
+            Database_set(conn, id, message);
             Database_write(conn);
             break;
         case 'd':
-            if (argc != 4) die("Need id to delete");
-
+            id = va_arg(argp, int);
+            check(id > 0, "Failed to get ID");
             Database_delete(conn, id);
             Database_write(conn);
             break;
@@ -145,10 +150,14 @@ int Database_access(int argc, char* argv[]) {
             Database_list(conn);
             break;
         default:
-            die("Invalid action, only: c=create, g=get, s=set, d=del, l=list");
+            sentinel("Invalid action, only: c=create, g=get, s=set, d=del, l=list");
     }
 
     Database_close(conn);
 
-    return (0);
+    return(0);
+
+error:
+    if(conn) Database_close(conn);
+    return(-1);
 }

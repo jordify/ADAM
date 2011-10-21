@@ -1,10 +1,9 @@
 /***
- * File: topology.h
+ * File: logDB.h
  * Author: Jorge Gomez
  * License: meh
- * Last Modified: Wed Oct 19, 2011 at 02:28
- ***
- */
+ * Last Modified: Fri Oct 21, 2011 at 00:06
+ ***/
 #ifndef _logDB_h
 #define _logDB_h
 
@@ -13,49 +12,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+#include "dbg.h"
 
-/* Be less lazy and malloc these */
-#define MAX_DATA 512
-#define MAX_ROWS 100
+#define MAX_ROWS 512
+#define MAX_DATA 100
 
 typedef struct Address {
     int id;
     int set;
-    char name[MAX_DATA];
-    char email[MAX_DATA];
+    char message[MAX_DATA];
 } Address;
 
 typedef struct Database {
-    struct Address rows[MAX_ROWS];
+    Address rows[MAX_ROWS];
 } Database;
 
 typedef struct Connection {
     FILE* file;
-    struct Database* db;
+    Database* db;
 } Connection;
 
-
-void Address_print(Address* addr);
-
-void Database_load(Connection* conn);
-
-Connection* Database_open(const char* filename, char mode);
-
-void Database_close(Connection* conn);
-
-void Database_write(Connection* conn);
-
-void Database_create(Connection* conn);
-
-void Database_set(Connection* conn, int id, const char* name, const char* email);
-
-void Database_get(Connection *conn, int id);
-
-void Database_delete(Connection* conn, int id);
-
-void Database_list(Connection* conn);
-
-/* Make all but this static, and make this varargs */
-int Database_access(int argc, char* argv[]);
+int Database_access(char command, ...);
+/* Commands (for now):
+ *      'c'                     - create a new database
+ *      'g', int id             - get message at id
+ *      's', int id, char* msg  - set id with message "msg"
+ *      'd', int id             - delete entry at id
+ *      'l'                     - list all id, message pairs
+ *
+ * Should add some logic to delete stale db values, search, etc.
+ */
 
 #endif

@@ -2,10 +2,10 @@
  * File: logDB.h
  * Author: Jorge Gomez
  * License: meh
- * Last Modified: Fri Oct 21, 2011 at 14:33
+ * Last Modified: Mon Oct 24, 2011 at 22:02
  ***/
-#ifndef _logDB_h
-#define _logDB_h
+#ifndef __logDB_h__
+#define __logDB_h__
 
 #include <assert.h>
 #include <errno.h>

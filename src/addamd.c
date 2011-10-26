@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "topology.h"
+#include "ham.h"
 #include "dbg.h"
 
 int main(int argc, char* argv[]) {
@@ -22,6 +23,10 @@ int main(int argc, char* argv[]) {
     rc = Topology_parseStatic(topo, argv[1]);
     check(!rc, "Failed to parse the static topology file.");
 
+    /* Initialize the HAM layer */
+    Ham* ham = Ham_init(topo->allLinks);
+    check(ham, "Failed to initialize the HAM");
+
     /* Log the parsing */
     char message[51];
     snprintf(message, 50, "./logDB s 1 \"Topology parsed: %d links, %d nodes\"", topo->nodeCount, topo->linkCount);
@@ -32,6 +37,8 @@ int main(int argc, char* argv[]) {
     rc = system("./logDB l");
     check(rc==0, "Log access failed");
 
+    /* Kill the Ham and topology */
+    Ham_destroy(ham);
     Topology_destroy(topo);
     return(0);
 

@@ -2,10 +2,10 @@
  * File: topology.h
  * Author: Jorge Gomez
  * License: meh
- * Last Modified: Fri Oct 21, 2011 at 01:37
+ * Last Modified: Mon Oct 24, 2011 at 22:02
  ***/
-#ifndef _topology_h
-#define _topology_h
+#ifndef __topology_h__
+#define __topology_h__
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -2,7 +2,6 @@
  * File: logDB.h
  * Author: Jorge Gomez
  * License: meh
- * Last Modified: Wed Oct 26, 2011 at 14:51
  ***/
 #ifndef __logDB_h__
 #define __logDB_h__

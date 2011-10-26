@@ -77,6 +77,8 @@ Topology* Topology_init(unsigned int numLinks, unsigned int numNodes) {
 }
 
 static void Topology_parseNetworkNode(Topology* topo, xmlNode* node) {
+    // This could return static i, and on last call it could be set to
+    // numLinks
     /* Networks just have attributes */
     static int i = 0;
     char* name;
@@ -113,6 +115,8 @@ static int Topology_matchName(Topology* topo, char* linkName) {
 }
 
 static void Topology_parseNodeNode(Topology* topo, xmlNode* node) {
+    // This could return static i, and on last call it could be set to
+    // numNodes
     /* Nodes have attributes and children denoting links */
     static int i = 0;
     char* name;

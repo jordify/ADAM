@@ -2,7 +2,6 @@
  * File: dbg.h
  * Author: Jorge Gomez
  * License: meh
- * Last Modified: Fri Oct 21, 2011 at 01:37
  * Note: This was taken from Zed Shaw's amazing debug macros found in
  * his ``Learn C the Hard Way'' book.
  * (http://c.learncodethehardway.org/book/learn-c-the-hard-waych21.html)

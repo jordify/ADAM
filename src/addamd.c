@@ -6,15 +6,36 @@
 #include "dbg.h"
 
 int main(int argc, char* argv[]) {
-    /* Initialize */
+    /* Three phases here:
+     * 1)       Set-up and initialization
+     *                  Parse topo
+     *                  init log
+     *                  set-up ham
+     *                  activate sockets on links
+     *                  set-up poller
+     * 2)       Event loop
+     *                  Beat heart
+     *                  poll sockets
+     *                          Handle events
+     *                  pause until next hb event
+     * 3)       Error handling and shutdown
+     *                  gracefully shutdown
+     *                  announce failure to log
+     *                  CLOSE LOG
+     *                  exit
+     */
+    /* Some vars */
     Topology* topo = NULL;
+    Ham* ham = NULL;
+    int myID = 0;
     int logID = 1;
 
     /* Check arguments */
-    if (argc != 2) {
-        sentinel("\n\tUsage: %s <topology file>\n", argv[0]);
+    if (argc != 3) {
+        sentinel("\n\tUsage: %s <topology file> <node ID>\n", argv[0]);
         return(1);
     }
+    myID = atoi(argv[2]);
 
     /* Create the log */
     int rc = Database_access('c');
@@ -29,7 +50,7 @@ int main(int argc, char* argv[]) {
     check(!rc, "Failed to parse the static topology file.");
 
     /* Initialize the HAM layer */
-    Ham* ham = Ham_init(topo->allLinks);
+    ham = Ham_init(topo->allLinks);
     check(ham, "Failed to initialize the HAM");
 
     /* Log the parsing */
@@ -50,5 +71,6 @@ int main(int argc, char* argv[]) {
 
 error:
     if(topo) Topology_destroy(topo);
+    if(ham) Ham_destroy(ham);
     return(-1);
 }

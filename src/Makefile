@@ -1,10 +1,11 @@
 CC=gcc
-CFLAGS=-g -Wall -I/usr/include/libxml2
-LDFLAGS=-lz -lm -lxml2 -lzmq -lczmq
+CFLAGS=-g -Wall -O0 -I/usr/include/libxml2 -I/usr/local/lib/
+LDFLAGS=-lz -lm -lxml2 -lzmq
 
-all: addamd logDB
+all: addamd
 
-addamd: topology.o ham.o
+addamd: topology.o ham.o logDB.o
 
 clean:
-	rm -f core *.o *.db addamd logDB
+	rm -f *.o core *.db
+	rm -f addamd

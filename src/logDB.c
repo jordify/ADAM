@@ -1,7 +1,7 @@
 #include "logDB.h"
 
 static void Address_print(Address* addr) {
-    printf("%d %s\n", addr->id, addr->message);
+    printf("%d: %s\n", addr->id, addr->message);
 }
 
 static void Database_load(Connection* conn) {
@@ -124,21 +124,16 @@ static void Database_list(Connection* conn) {
     }
 }
 
-int main(int argc, char* argv[]) {
+int Database_access(char command, ...) {
+    va_list argp;
+    va_start(argp, command);
     char* filename = "log.db";
+    char* message = NULL;
     int id = 0;
     int rc = -1;
 
-    check(argc > 1, "\nUsage:\n\t%s <command> [command args]", argv[0]);
-    char command = argv[1][0];
-
     Connection* conn = Database_open(filename, command);
     check(conn, "Couldn't open db");
-
-    if (argc > 2) {
-        id = atoi(argv[2]);
-        check(((id < MAX_ROWS) && (id>0)), "There's not that many records.");
-    }
 
     switch(command) {
         case 'c':
@@ -146,23 +141,31 @@ int main(int argc, char* argv[]) {
             Database_write(conn);
             break;
         case 'g':
-            if(argc!=3) {
+            id = va_arg(argp, int);
+            if(id<=0) {
                 sentinel("Need an id to get.");
             } else {
                 Database_get(conn, id);
             }
             break;
         case 's':
-            if(argc!=4) {
-                sentinel("Need an id and message to set.");
+            id = va_arg(argp, int);
+            if(id<=0) {
+                sentinel("Need an id to set.");
             } else {
-                rc = Database_set(conn, id, argv[3]);
-                check(rc==0, "Failed to set memory.");
-                Database_write(conn);
+                message = va_arg(argp, char*);
+                if(!message) {
+                    sentinel("Need an id and message to set.");
+                } else {
+                    rc = Database_set(conn, id, message);
+                    check(rc==0, "Failed to set memory.");
+                    Database_write(conn);
+                }
             }
             break;
         case 'd':
-            if(argc!=3) {
+            id = va_arg(argp, int);
+            if(id<=0) {
                 sentinel("Need an id to delete.");
             } else {
                 Database_delete(conn, id);

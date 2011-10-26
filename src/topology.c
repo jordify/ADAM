@@ -187,7 +187,6 @@ int Topology_parseStatic(Topology* topo, const char* topoFileName) {
 
     Topology_parseElement(topo, root_element);
 
-    xmlFree(root_element);
     xmlFreeDoc(doc); // This leaks
     xmlCleanupParser();
 

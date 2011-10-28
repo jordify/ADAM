@@ -1,3 +1,28 @@
+Topology needs active node count
+Votes with multiple nodes failing simultaneously
+	N := Nominal System Size
+	Na := Active System Size
+	Va=1 Vc=2
+	Failures = N/2-1
+	First vote fails b/c Vc is never reached on first vote
+	Second vote is on new state with N/2-1 failed nodes
+    Three phases here:
+		Set-up and initialization
+            Parse topo
+            Init log
+            Set-up ham
+            Activate sockets on links
+            Set-up poller
+		Event loop
+            Beat heart
+            Poll sockets
+            Handle events
+            Pause until next hb event
+		Error handling and shutdown
+			Gracefully shutdown
+			Announce failure to log
+			Exit
+----------------------------------------
 Classes
 	HamNode
 		Initializes the node

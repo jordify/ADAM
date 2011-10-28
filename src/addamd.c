@@ -5,30 +5,21 @@
 #include "ham.h"
 #include "dbg.h"
 
+void do_listen(Ham* ham) {
+    debug("%s", Ham_recv(ham));
+}
+
+void do_publish(Ham* ham) {
+    debug("Beat %d", Ham_beat(ham));
+}
+
 int main(int argc, char* argv[]) {
-    /* Three phases here:
-     * 1)       Set-up and initialization
-     *                  Parse topo
-     *                  init log
-     *                  set-up ham
-     *                  activate sockets on links
-     *                  set-up poller
-     * 2)       Event loop
-     *                  Beat heart
-     *                  poll sockets
-     *                          Handle events
-     *                  pause until next hb event
-     * 3)       Error handling and shutdown
-     *                  gracefully shutdown
-     *                  announce failure to log
-     *                  CLOSE LOG
-     *                  exit
-     */
     /* Some vars */
     Topology* topo = NULL;
     Ham* ham = NULL;
     int myID = 0;
     int logID = 1;
+    char message[51];
 
     /* Check arguments */
     if (argc != 3) {
@@ -50,15 +41,21 @@ int main(int argc, char* argv[]) {
     check(!rc, "Failed to parse the static topology file.");
 
     /* Initialize the HAM layer */
-    ham = Ham_init(topo->allLinks);
+    ham = Ham_init(topo, myID);
     check(ham, "Failed to initialize the HAM");
 
     /* Log the parsing */
-    char message[51];
-    snprintf(message, 50, "Topology parsed: %d links, %d nodes", topo->nodeCount, topo->linkCount);
+    snprintf(message, 50, "[%d] Topology parsed: %d links, %d nodes",
+            myID, topo->nodeCount, topo->linkCount);
     rc = Database_access('s', logID, message);
     check(rc==0, "Log set failed");
     logID++;
+
+    /* Do Things */
+    if(myID) 
+        do_listen(ham);
+    else
+        do_publish(ham);
 
     /* Print the log */
     rc = Database_access('l');
@@ -70,6 +67,9 @@ int main(int argc, char* argv[]) {
     return(0);
 
 error:
+    snprintf(message, 10, "[%d] Died", myID);
+    Database_access('s', logID, message);
+    logID++;
     if(topo) Topology_destroy(topo);
     if(ham) Ham_destroy(ham);
     return(-1);

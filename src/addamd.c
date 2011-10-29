@@ -5,6 +5,7 @@
 #include "ham.h"
 #include "dbg.h"
 
+/*
 void do_listen(Ham* ham) {
     debug("%s", Ham_recv(ham));
 }
@@ -12,6 +13,7 @@ void do_listen(Ham* ham) {
 void do_publish(Ham* ham) {
     debug("Beat %d", Ham_beat(ham));
 }
+*/
 
 int main(int argc, char* argv[]) {
     /* Some vars */
@@ -52,10 +54,19 @@ int main(int argc, char* argv[]) {
     logID++;
 
     /* Do Things */
-    if(myID) 
-        do_listen(ham);
-    else
-        do_publish(ham);
+    if(myID) {
+        while(1) {
+            Ham_poll(ham, 1000000);
+            printf("Polled once.\n");
+        }
+        //do_listen(ham);
+    } else {
+        while(1) {
+            Ham_beat(ham);
+            mSleep(1000);
+        }
+        //do_publish(ham);
+    }
 
     /* Print the log */
     rc = Database_access('l');

@@ -7,7 +7,8 @@
 #define __ham_h__
 
 #include <stdlib.h>
-#include "../utils/zhelpers.h"
+#include <time.h>
+#include <zmq.h>
 #include "topology.h"
 #include "dbg.h"
 
@@ -29,7 +30,13 @@ char* Ham_recv(Ham* ham);
 
 int Ham_beat(Ham* ham);
 
+void Ham_poll(Ham* ham, int timeout);
+
 void Ham_destroy(Ham* ham);
+
+void mSleep(int msecs);
+
+int s_send (void *socket, char *string);
 
 #endif
 

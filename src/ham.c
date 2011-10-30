@@ -1,6 +1,6 @@
 #include "ham.h"
 
-Ham* Ham_init(Topology* topo, int myID) {
+Ham* Ham_init(Topology* topo, unsigned int myID) {
     // make a new Ham
     Ham* newHam = malloc(sizeof(Ham));
     check_mem(newHam);
@@ -19,30 +19,30 @@ Ham* Ham_init(Topology* topo, int myID) {
     // Bind address for pub socket
     char notifierBindAddress[50];
     snprintf(notifierBindAddress, 49, "tcp://*:%d", basePort + myID);
-    debug("notifier %s", notifierBindAddress);
 
-    // Bind address for sub socket (needs to come from topology
-    char listenerBindAddress[50];
-    if(myID) {
-        snprintf(listenerBindAddress, 49, "tcp://localhost:%d", basePort + myID-1);
-        debug("listener %s", listenerBindAddress);
-    }
-    else {
-        snprintf(listenerBindAddress, 49, "tcp://localhost:%d", basePort + topo->nodeCount-1);
-        debug("listener %s", listenerBindAddress);
-    }
+    // Bind pub socket
+    void* notifier = zmq_socket(ctx, ZMQ_PUB);
+    check(notifier, "Notifier creation failed");
+    zmq_bind(notifier, notifierBindAddress); // Need to check rc
+    debug("Notifier bound to %s", notifierBindAddress);
 
     // Make sub socket 
     void* listener = zmq_socket(ctx, ZMQ_SUB);
-    check(listener, "listener failed");
+    check(listener, "Listener creation failed");
     zmq_setsockopt(listener, ZMQ_IDENTITY, myIdentity, strlen(myIdentity));
     zmq_setsockopt(listener, ZMQ_SUBSCRIBE, "", 0);
-    zmq_connect(listener, listenerBindAddress);
 
-    // Make pub socket
-    void* notifier = zmq_socket(ctx, ZMQ_PUB);
-    check(listener, "notifier failed");
-    zmq_bind(notifier, notifierBindAddress);
+    // Connect addresses for sub socket (needs to come from topology)
+    char listenerConnAddress[100];
+    Node* thisNode = NULL;
+    unsigned int i;
+    for(i=0; i<topo->nodeCount; i++) {
+        thisNode = topo->allNodes[i];
+        if(thisNode->id == myID) continue;
+        snprintf(listenerConnAddress, 49, "tcp://%s:%d", thisNode->name, basePort+thisNode->id);
+        zmq_connect(listener, listenerConnAddress); // Need to check rc
+        debug("Listener connected to %s", listenerConnAddress);
+    }
 
     // Set new ham structure
     newHam->myID = myID;
@@ -58,10 +58,6 @@ error:
     return(0);
 }
 
-char* Ham_recv(Ham* ham) {
-    return(NULL);
-}
-
 int Ham_beat(Ham* ham) {
     char hb[50]; 
     snprintf(hb, 49, "%d", ham->myID);
@@ -70,7 +66,9 @@ int Ham_beat(Ham* ham) {
 }
 
 void Ham_poll(Ham* ham, int timeout) {
-    // Set up poll item
+// TODO: Add ipc REP socket for communicating with libAddam
+
+    /* Set up poll item */
     zmq_pollitem_t items[] = {
         { ham->listener, 0, ZMQ_POLLIN, 0 }
     };
@@ -85,7 +83,7 @@ void Ham_poll(Ham* ham, int timeout) {
         memcpy(string, zmq_msg_data(&message), size);
         zmq_msg_close(&message);
         string[size] = 0;
-        printf("%s\n", string);
+        debug("Got beat from node %s", string);
         free(string);
     }
 }
@@ -94,9 +92,9 @@ void Ham_destroy(Ham* ham) {
     zmq_close(ham->notifier);
     zmq_close(ham->listener);
     zmq_term(ham->ctx);
+    if(ham) free(ham);
 }
 
-//  Sleep for a number of milliseconds
 void mSleep (int msecs) {
     struct timespec t;
     t.tv_sec  =  msecs / 1000;
@@ -104,7 +102,6 @@ void mSleep (int msecs) {
     nanosleep(&t, NULL);
 }
 
-//  Convert C string to 0MQ string and send to socket
 int s_send(void *socket, char *string) {
     int rc;
     zmq_msg_t message;

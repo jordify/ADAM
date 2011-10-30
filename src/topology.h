@@ -61,3 +61,4 @@ int Topology_parseStatic(Topology* topo, const char* topoFileName);
 void Topology_destroy(Topology* topo);
 
 #endif
+

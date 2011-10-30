@@ -131,14 +131,15 @@ int Database_access(char command, ...) {
     char* message = NULL;
     int id = 0;
     int rc = -1;
+    Connection* conn = NULL;
 
     int filenameID = va_arg(argp, int);
-    debug("%d", filenameID);
+    debug("Log file ID is %d", filenameID);
     if(filenameID < 0)
         sentinel("Need a fileID to use log.");
-    snprintf(filename, 49, "log%d.db", filenameID);
+    snprintf(filename, 49, "node%d.db", filenameID);
 
-    Connection* conn = Database_open(filename, command);
+    conn = Database_open(filename, command);
     check(conn, "Couldn't open db");
 
     switch(command) {

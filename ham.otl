@@ -1,4 +1,9 @@
+Need a logDB utility binary for reading the log for debugging
+	Just include logdb.h and convert from (int argc, char* argv[]) to (command, ...)
 Topology needs active node count
+	No it doesn't, shut up
+	We can connect to all other nodes' pubs, it won't panic
+		What about byzantine faults
 Votes with multiple nodes failing simultaneously
 	N := Nominal System Size
 	Na := Active System Size
@@ -6,97 +11,33 @@ Votes with multiple nodes failing simultaneously
 	Failures = N/2-1
 	First vote fails b/c Vc is never reached on first vote
 	Second vote is on new state with N/2-1 failed nodes
-    Three phases here:
-		Set-up and initialization
-            Parse topo
-            Init log
-            Set-up ham
-            Activate sockets on links
-            Set-up poller
-		Event loop
-            Beat heart
-            Poll sockets
-            Handle events
-            Pause until next hb event
-		Error handling and shutdown
-			Gracefully shutdown
-			Announce failure to log
-			Exit
+Program execution
+	Set-up and initialization
+		Parse topology
+		Init log
+		Set-up ham
+		Activate sockets on links
+		Set-up poller
+	Event loop
+		Beat heart
+		Poll sockets
+		Handle events
+		Pause until next hb event
+	Error handling and shutdown
+		Gracefully shutdown
+		Announce failure to log
+		Exit
 ----------------------------------------
-Classes
-	HamNode
-		Initializes the node
-		Takes messages from a client app
-	TopoParser
-		Parses the topology file
-		Provides info about nodes that aren't neighbors
-	Connection
-		Wraps around a live zmq/tcp connection
-		Launches it's own thread for receiving messages
-	HealthSystem
-		Methods for checking neighbor's health
-		Passes health information
-On start-up
-	Who am I?
-	Parse a topology file
-	Build a neighborhood list
-		Create connections for all the neighbors
-	Check in with neighbors
-		Gossip about system state
-On message receipt from an application
-	Pack message data
-	Checksum and append to trailer
-	Add header
-	Checksum the header
-		Standard size
-		Length of payload
-	Send the message
-		Check if node is a neighbor
-			If so send via open connection
-		If not neighbor
-			Check state
-			Get address from topology parser
-			Open a connection to it
-Additions
-	Interleave the CRC and zending
-So quick demo for results
-	Point to point comms from an external application
-		App -> ham library -> ham library -> App
-		Measure latency and throughput
-	Features
-		Should do address translation from node name to ip and port
-		should packetize data and add checksums to payload and header of message
-		Should periodically check status of other node by querying health information
-	One push pull socket
-		How to do backwards comms?
-			Have the application design the comms infrastructure
-			HAM justs wraps around the zmq calls to add translation and FT methods
-	Implementation procedure
-		Write the app skeleton
-		Rip out Nick's tcp/ip code and use that for basic comms
+Making zeroMQ work on compute-0-{0,1} 
+	!!! THESE ARE WRONG, YOU CAN BUILD AN rpm FILE AND DISTRIBUTE (documented elsewhere) !!!
+		./configure --prefix=/usr --libdir=/usr/lib64
+		make
+		ABOVE NOT NECESSARY UNLESS make clean has been run
 		----------------------------------------
-		Make it take in cli arguments for varying msg size
-			Doesn't handle msgs > 3000B
-		Replace tcp/ip with zmq
-			Debug
-		Add CRC32
-Making zeroMQ work on compute-0-{0,1}
-	./configure --prefix=/usr --libdir=/usr/lib64
-	make
-	ABOVE NOT NECESSARY UNLESS make clean has been run
-	----------------------------------------
-	sudo make install
-	cd ../ADAM && gcc -lzmq -o zmqVersion zmqVersion.c && ./zmqVersion
-	----------------------------------------
-	Python 2.7.1: ./configure && make && make install
-	ZeroMQ 2.1.7: ./configure AS ABOVE && make && make install
-	pyzmq 2.1.7: python2.7 setup.py --zmq=/usr/lib64 install
-	Test: python -c "import zmq"
-PLAN BBBBBBBBBBEEEEEEEEEE:
-	Need to implement still
-	Benchmark.runTests()
-		for each mw in mwSet:
-			for each size in sizes:
-				lats.append(testLat(mw, size, reps))
-				thrs.append(testThr(mw, size, reps))
-			self.writeCSV()
+		sudo make install
+		cd ../ADAM && gcc -lzmq -o zmqVersion zmqVersion.c && ./zmqVersion
+		----------------------------------------
+		Python 2.7.1: ./configure && make && make install
+		ZeroMQ 2.1.7: ./configure AS ABOVE && make && make install
+		pyzmq 2.1.7: python2.7 setup.py --zmq=/usr/lib64 install
+		Test: python -c "import zmq"

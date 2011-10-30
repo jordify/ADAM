@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<topology>
+  <network name="Network A" type="gigE" speed="1000"/>
+  <network name="Network B" type="fastE" speed="100"/>
+  <node name="compute-0-0" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-1" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-2" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-3" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-4" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-5" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-6" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-7" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-8" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-9" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-10" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-11" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-12" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-13" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-14" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+  <node name="compute-0-15" cpuCount="4" radHard="False">
+    <link network="Network A" />
+    <link network="Network B" />
+  </node>
+</topology>

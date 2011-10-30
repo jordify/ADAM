@@ -127,10 +127,16 @@ static void Database_list(Connection* conn) {
 int Database_access(char command, ...) {
     va_list argp;
     va_start(argp, command);
-    char* filename = "log.db";
+    char filename[50];
     char* message = NULL;
     int id = 0;
     int rc = -1;
+
+    int filenameID = va_arg(argp, int);
+    debug("%d", filenameID);
+    if(filenameID < 0)
+        sentinel("Need a fileID to use log.");
+    snprintf(filename, 49, "log%d.db", filenameID);
 
     Connection* conn = Database_open(filename, command);
     check(conn, "Couldn't open db");

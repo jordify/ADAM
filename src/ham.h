@@ -36,7 +36,10 @@ void Ham_destroy(Ham* ham);
 
 void mSleep(int msecs);
 
-int s_send (void *socket, char *string);
+int s_send(void *socket, char *string);
+
+int cmpTime(const struct timespec* tp1, const struct timespec* tp2);
+// Returns 1, 0, or -1 if tp1 is >, =, or < tp2 respectively
 
 #endif
 

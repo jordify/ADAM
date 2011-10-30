@@ -1,19 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "logDB.h"
 #include "topology.h"
 #include "ham.h"
 #include "dbg.h"
-
-/*
-void do_listen(Ham* ham) {
-    debug("%s", Ham_recv(ham));
-}
-
-void do_publish(Ham* ham) {
-    debug("Beat %d", Ham_beat(ham));
-}
-*/
 
 int main(int argc, char* argv[]) {
     /* Some vars */
@@ -22,6 +13,7 @@ int main(int argc, char* argv[]) {
     int myID = 0;
     int logID = 1;
     char message[51];
+    int databaseActive = 0;
 
     /* Check arguments */
     if (argc != 3) {
@@ -31,11 +23,12 @@ int main(int argc, char* argv[]) {
     myID = atoi(argv[2]);
 
     /* Create the log */
-    int rc = Database_access('c');
+    int rc = Database_access('c', myID);
     check(rc==0, "Log creation failed");
+    databaseActive = 1;
 
     /* Initialize the topology */
-    topo = Topology_init(2, 4);
+    topo = Topology_init(1, 2);
     check(topo, "Couldn't initialize the topology.");
 
     /* Parse the static topology file into the topo */
@@ -49,27 +42,27 @@ int main(int argc, char* argv[]) {
     /* Log the parsing */
     snprintf(message, 50, "[%d] Topology parsed: %d links, %d nodes",
             myID, topo->nodeCount, topo->linkCount);
-    rc = Database_access('s', logID, message);
+    rc = Database_access('s', myID, logID, message);
     check(rc==0, "Log set failed");
     logID++;
 
-    /* Do Things */
-    if(myID) {
-        while(1) {
+    /* Initiate time */
+    struct timespec now, target;
+    int i = 0;
+    while(i<10) {
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        memcpy(&target, &now, sizeof(struct timespec));
+        target.tv_sec = now.tv_sec + 1;
+        while(cmpTime(&now, &target)==-1) {
             Ham_poll(ham, 1000000);
-            printf("Polled once.\n");
+            clock_gettime(CLOCK_MONOTONIC, &now);
         }
-        //do_listen(ham);
-    } else {
-        while(1) {
-            Ham_beat(ham);
-            mSleep(1000);
-        }
-        //do_publish(ham);
+        Ham_beat(ham);
+        i++;
     }
 
     /* Print the log */
-    rc = Database_access('l');
+    rc = Database_access('l', myID);
     check(rc==0, "Log list failed");
 
     /* Kill the Ham and topology */
@@ -79,9 +72,10 @@ int main(int argc, char* argv[]) {
 
 error:
     snprintf(message, 10, "[%d] Died", myID);
-    Database_access('s', logID, message);
+    if(databaseActive) Database_access('s', myID, logID, message);
     logID++;
     if(topo) Topology_destroy(topo);
     if(ham) Ham_destroy(ham);
     return(-1);
 }
+

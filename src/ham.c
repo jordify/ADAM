@@ -105,7 +105,7 @@ void mSleep (int msecs) {
 }
 
 //  Convert C string to 0MQ string and send to socket
-int s_send (void *socket, char *string) {
+int s_send(void *socket, char *string) {
     int rc;
     zmq_msg_t message;
     zmq_msg_init_size(&message, strlen (string));
@@ -113,4 +113,19 @@ int s_send (void *socket, char *string) {
     rc = zmq_send(socket, &message, 0);
     zmq_msg_close(&message);
     return(rc);
+}
+
+int cmpTime(const struct timespec* tp1, const struct timespec* tp2) {
+    if (tp1->tv_sec == tp2->tv_sec) {
+        if (tp1->tv_nsec > tp2->tv_nsec)
+            return(1);
+        else if (tp1->tv_nsec < tp2->tv_nsec)
+            return(-1);
+        else
+            return(0);
+    }
+    else if (tp1->tv_sec > tp2->tv_sec)
+        return(1);
+    else
+        return(-1);
 }

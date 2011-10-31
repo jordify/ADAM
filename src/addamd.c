@@ -65,9 +65,10 @@ int main(int argc, char* argv[]) {
 
     /* Poll for events and heartbeat */
     struct timespec now, target;
-    int i = 0;
+    unsigned int i = 0;
     s_catch_signals();
     while(i<10) {
+        Ham_timeoutHBs(ham);
         clock_gettime(CLOCK_MONOTONIC, &now);
         memcpy(&target, &now, sizeof(struct timespec));
         target.tv_sec = now.tv_sec + 1;
@@ -86,6 +87,11 @@ int main(int argc, char* argv[]) {
     /* Print the log */
     rc = Database_access('l', myID);
     check(rc==0, "Log list failed");
+
+    /* Print the current hbState */
+    for(i=0; i<topo->nodeCount; i++)
+        printf("%d\t", ham->hbStates[i]);
+    printf("\n");
 #endif
 
     /* Kill the Ham and topology */

@@ -7,8 +7,7 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
 
     // ZMQ Context for all proceedings
     void* ctx = zmq_init(1);
-    check(ctx, "Context Failed");
-
+    check(ctx, "Context Failed"); 
     // Base port for network 1
     int basePort = 5600;
 
@@ -44,12 +43,20 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
         debug("Listener connected to %s", listenerConnAddress);
     }
 
+    // Create intial health states (-1:=Not Monitored, 0,1,2,...
+    // :=Number of missed heartbeats)
+    int* hbStates = malloc(topo->nodeCount*sizeof(int));
+    for(i=0; i<topo->nodeCount; i++)
+        hbStates[i] = -1;
+    hbStates[myID] = 0;
+
     // Set new ham structure
     newHam->myID = myID;
     newHam->ctx = ctx;
     newHam->listener = listener;
     newHam->notifier = notifier;
     newHam->topo = topo;
+    newHam->hbStates = hbStates;
 
     // return ham
     return(newHam);
@@ -88,10 +95,24 @@ void Ham_poll(Ham* ham, int timeout) {
     }
 }
 
+void Ham_timeoutHBs(Ham* ham) {
+    unsigned int i;
+    for(i=0; i<ham->topo->nodeCount; i++)
+        if(ham->hbStates[i]>=0)
+            ham->hbStates[i]++;
+    ham->hbStates[ham->myID] = 0;
+}
+
+void Ham_procHB(Ham* ham, char* message) {
+    unsigned int nodeID = atoi(message);
+    ham->hbStates[nodeID] = 0;
+}
+
 void Ham_destroy(Ham* ham) {
     zmq_close(ham->notifier);
     zmq_close(ham->listener);
     zmq_term(ham->ctx);
+    if(ham->hbStates) free(ham->hbStates);
     if(ham) free(ham);
 }
 

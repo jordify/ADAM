@@ -12,25 +12,31 @@
 #include "topology.h"
 #include "dbg.h"
 
-typedef struct Link {
-    unsigned int linkID;
-} Link;
-
 typedef struct Ham {
     int myID;
     void* ctx;
     void* listener;
     void* notifier;
     Topology* topo;
+    int* hbStates;
 } Ham;
 
+// Open up sockets on network interfaces
 Ham* Ham_init(Topology* topo, unsigned int myID);
 
+// Send out a heart beat to all subscribers
 int Ham_beat(Ham* ham);
 
 // Polls for incoming on listener socket
 void Ham_poll(Ham* ham, int timeout);
 
+// Increment everyone's hbState
+void Ham_timeoutHBs(Ham* ham);
+
+// Process an incoming heartbeat message
+void Ham_procHB(Ham* ham, char* message);
+
+// Tear down a system
 void Ham_destroy(Ham* ham);
 
 // Sleep for a number of milliseconds

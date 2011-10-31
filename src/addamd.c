@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
     databaseActive = 1;
 
     /* Initialize the topology */
-    topo = Topology_init(1, 3);
+    topo = Topology_init();
     check(topo, "Couldn't initialize the topology.");
 
     /* Parse the static topology file into the topo */

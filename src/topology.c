@@ -53,31 +53,19 @@ void Node_addLinks(Node* replica, unsigned int numLinks, unsigned int* linkIDs, 
         replica->links[i] = allLinks[linkIDs[i]];
 }
 
-Topology* Topology_init(unsigned int numLinks, unsigned int numNodes) {
-    unsigned int i;
-    /* Make all nodes */
-    Node** allNodes = malloc(numNodes*sizeof(Node*));
-    for (i=0; i<numNodes; i++)
-        allNodes[i] = malloc(sizeof(Node));
-
-    /* Make all links */
-    Network** allLinks = malloc(numLinks*sizeof(Network*));
-    for (i=0; i<numLinks; i++)
-        allLinks[i] = malloc(sizeof(Network));
-
-
+Topology* Topology_init(void) {
     Topology* topo = malloc(sizeof(Topology));
     assert(topo != NULL);
 
-    topo->nodeCount = numNodes;
-    topo->linkCount = numLinks;
-    topo->allNodes = allNodes;
-    topo->allLinks = allLinks;
+    topo->nodeCount = 0;
+    topo->linkCount = 0;
+    topo->allNodes = NULL;
+    topo->allLinks = NULL;
 
     return(topo);
 }
 
-static int Topology_parseNetworkNode(Topology* topo, xmlNode* node) {
+static void Topology_parseNetworkNode(Topology* topo, xmlNode* node) {
     // This could return static i, and on last call it could be set to
     // numLinks
     /* Networks just have attributes */
@@ -100,10 +88,14 @@ static int Topology_parseNetworkNode(Topology* topo, xmlNode* node) {
         else
             fprintf(stderr, "Bad attribute in Network node\n");
     }
+
+    /* Add link to link list */
+    topo->allLinks = (Network**)realloc(topo->allLinks, (i+1)*sizeof(Network*));
+    // CHECK MEM
     topo->allLinks[i] = Network_init(i, name, type, (unsigned int)atoi(speed));
 
-    i++;
-    return(i);
+    /* Update link count */
+    topo->linkCount = ++i;
 }
 
 static int Topology_matchName(Topology* topo, char* linkName) {
@@ -115,9 +107,7 @@ static int Topology_matchName(Topology* topo, char* linkName) {
     return (i);
 }
 
-static int Topology_parseNodeNode(Topology* topo, xmlNode* node) {
-    // This could return static i, and on last call it could be set to
-    // numNodes
+static void Topology_parseNodeNode(Topology* topo, xmlNode* node) {
     /* Nodes have attributes and children denoting links */
     static int i = 0;
     char* name = NULL;
@@ -141,6 +131,7 @@ static int Topology_parseNodeNode(Topology* topo, xmlNode* node) {
         else
             fprintf(stderr, "Bad attribute in Network node\n");
     }
+    bool rh = (strncmp(radHard,"False",1)) ? 0 : 1;
 
     /* Children (networks associated with the node) */
     xmlNode* child = node->children;
@@ -152,26 +143,29 @@ static int Topology_parseNodeNode(Topology* topo, xmlNode* node) {
         }
     }
 
-    bool rh = (strncmp(radHard,"False",1)) ? 0 : 1;
-    topo->allNodes[i] = Node_init(i, name, (unsigned char) atoi(cpuCount), rh); 
+    /* Add the node to node list */
+    topo->allNodes = (Node**)realloc(topo->allNodes, (i+1)*sizeof(Node*));
+    // CHECK MEM
+    topo->allNodes[i] = Node_init(i, name, (unsigned char)atoi(cpuCount), rh);
     Node_addLinks(topo->allNodes[i], associatedLinkCount, linkIDs, topo->allLinks);
 
+    /* Update node count */
+    topo->nodeCount = ++i;
+
     free(linkIDs);
-    i++;
-    return(i);
 }
 
-static void Topology_parseElement(Topology* topo, xmlNode* a_node, int* networks, int* nodes) {
+static void Topology_parseElement(Topology* topo, xmlNode* a_node) {
     xmlNode *cur_node = NULL;
 
     for (cur_node = a_node; cur_node; cur_node = cur_node->next) {
         if (cur_node->type == XML_ELEMENT_NODE) {
             if (!strcmp((char*)cur_node->name,"network"))
-                *networks = Topology_parseNetworkNode(topo, cur_node);
+                Topology_parseNetworkNode(topo, cur_node);
             else if (!strcmp((char*)cur_node->name,"node"))
-                *nodes = Topology_parseNodeNode(topo, cur_node);
+                Topology_parseNodeNode(topo, cur_node);
         }
-        Topology_parseElement(topo, cur_node->children, networks, nodes);
+        Topology_parseElement(topo, cur_node->children);
     }
 }
 
@@ -191,13 +185,7 @@ int Topology_parseStatic(Topology* topo, const char* topoFileName) {
     root_element = xmlDocGetRootElement(doc);
 
     /* Parse each element starting with the root */
-    int nnetworks = 0;
-    int nnodes = 0;
-    Topology_parseElement(topo, root_element, &nnetworks, &nnodes);
-
-    /* Set node and network count */
-    topo->linkCount = nnetworks;
-    topo->nodeCount = nnodes;
+    Topology_parseElement(topo, root_element);
 
     /* Clean up */
     xmlFreeDoc(doc);

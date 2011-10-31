@@ -54,7 +54,7 @@ void Node_destroy(Node* replica);
 
 void Node_addLinks(Node* replica, unsigned int numLinks, unsigned int* linkIDs, Network** allLinks);
 
-Topology* Topology_init(unsigned int numLinks, unsigned int numNodes);
+Topology* Topology_init(void);
 
 int Topology_parseStatic(Topology* topo, const char* topoFileName);
 

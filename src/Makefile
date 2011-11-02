@@ -9,6 +9,9 @@ dev: all
 
 addamd: topology.o ham.o logDB.o
 
+tests: CFLAGS=-g -O0 -Wall -Wextra
+tests: vote_coord.o
+
 clean:
 	rm -f *.o core node*.db
-	rm -f addamd
+	rm -f addamd tests

@@ -1,9 +1,6 @@
 Task List
-	Broadcast timeout on local hbStates
-		Logic to process different message types
-		Message class
-	Voting on state
-	Use system(hostname) to get ID of host
+	Voting class
+		UT it
 	Python Orchestration util
 		Launching on Iota
 		Killing nodes in a known way

@@ -7,10 +7,10 @@ all: addamd
 dev: CFLAGS=-g -O0 -Wall -Wextra -I/usr/include/libxml2 -I/usr/local/lib/
 dev: all
 
-addamd: topology.o ham.o logDB.o
+addamd: topology.o ham.o logDB.o vote_coord.o message.o
 
 tests: CFLAGS=-g -O0 -Wall -Wextra
-tests: vote_coord.o
+tests: vote_coord.o messages.o
 
 clean:
 	rm -f *.o core node*.db

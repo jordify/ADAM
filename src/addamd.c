@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
     struct timespec now, target;
     unsigned int i = 0;
     s_catch_signals();
-    while(i<10) {
+    while(1) {
         Ham_timeoutHBs(ham);
         clock_gettime(CLOCK_MONOTONIC, &now);
         memcpy(&target, &now, sizeof(struct timespec));
@@ -75,9 +75,14 @@ int main(int argc, char* argv[]) {
         while(cmpTime(&now, &target)==-1) {
             Ham_poll(ham, 1000000);
             clock_gettime(CLOCK_MONOTONIC, &now);
+#ifndef NDEBUG
+            /* Print the current hbState */
+            for(i=0; i<topo->nodeCount; i++)
+                printf("%d\t", ham->hbStates[i]);
+            printf("\n");
+#endif
         }
         Ham_beat(ham);
-        i++;
 
         if(s_interrupted)
             sentinel("Caught sigterm or sigint, nobly killing self...");

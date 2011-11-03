@@ -1,6 +1,7 @@
 #include "ham.h"
 
 Ham* Ham_init(Topology* topo, unsigned int myID) {
+    unsigned int i = 0;
     // make a new Ham
     Ham* newHam = malloc(sizeof(Ham));
     check_mem(newHam);
@@ -22,6 +23,8 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
     // Bind pub socket
     void* notifier = zmq_socket(ctx, ZMQ_PUB);
     check(notifier, "Notifier creation failed");
+    i = 1000;
+    zmq_setsockopt(notifier, ZMQ_LINGER, &i, sizeof(i));
     zmq_bind(notifier, notifierBindAddress); // Need to check rc
     debug("Notifier bound to %s", notifierBindAddress);
 
@@ -34,7 +37,6 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
     // Connect addresses for sub socket (needs to come from topology)
     char listenerConnAddress[100];
     Node* thisNode = NULL;
-    unsigned int i;
     for(i=0; i<topo->nodeCount; i++) {
         thisNode = topo->allNodes[i];
         if(thisNode->id == myID) continue;
@@ -50,6 +52,10 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
         hbStates[i] = -1;
     hbStates[myID] = 0;
 
+    // Initialize a vote coordinator for this node's hb timeouts
+    VoteCoord* coord = Vote_Startup(topo->nodeCount);
+    check_mem(coord);
+
     // Set new ham structure
     newHam->myID = myID;
     newHam->ctx = ctx;
@@ -57,19 +63,27 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
     newHam->notifier = notifier;
     newHam->topo = topo;
     newHam->hbStates = hbStates;
+    newHam->coord = coord;
 
     // return ham
     return(newHam);
 error:
+    if (coord) Vote_Shutdown(coord);
+    if (hbStates) free(hbStates);
     if (newHam) free(newHam);
     return(0);
 }
 
 int Ham_beat(Ham* ham) {
-    char hb[50]; 
-    snprintf(hb, 49, "%d", ham->myID);
-    debug("Beated");
-    return(s_send(ham->notifier, hb));
+    Header* beatHeader = Header_init(ham->myID, (unsigned char) -1, o_HEARTBEAT);
+    zmq_msg_t message;
+    zmq_msg_init_size(&message, sizeof(Header));
+    memcpy(zmq_msg_data(&message), beatHeader, sizeof(Header));
+    int rc = zmq_send(ham->notifier, &message, 0);
+    zmq_msg_close(&message);
+    Header_destroy(beatHeader);
+
+    return(rc);
 }
 
 void Ham_poll(Ham* ham, int timeout) {
@@ -86,32 +100,36 @@ void Ham_poll(Ham* ham, int timeout) {
         zmq_msg_init(&message);
         zmq_recv(ham->listener, &message, 0);
         int size = zmq_msg_size(&message);
-        char* string = malloc(size+1);
-        memcpy(string, zmq_msg_data(&message), size);
+        Header* beat = malloc(sizeof(Header));
+        memcpy(beat, zmq_msg_data(&message), size);
         zmq_msg_close(&message);
-        string[size] = 0;
-        debug("Got beat from node %s", string);
-        free(string);
+        Ham_procHB(ham, beat->source);
+        free(beat);
     }
 }
 
 void Ham_timeoutHBs(Ham* ham) {
     unsigned int i;
     for(i=0; i<ham->topo->nodeCount; i++)
-        if(ham->hbStates[i]>=0)
+        if(ham->hbStates[i]>=0) {
             ham->hbStates[i]++;
+            if(ham->hbStates[i] >= HBTIMEOUT) {
+                debug("Node %d is dead", i);
+                Vote_Coord_Init(ham->coord, i, 2, 1);
+            }
+        }
     ham->hbStates[ham->myID] = 0;
 }
 
-void Ham_procHB(Ham* ham, char* message) {
-    unsigned int nodeID = atoi(message);
-    ham->hbStates[nodeID] = 0;
+void Ham_procHB(Ham* ham, unsigned int source) {
+    ham->hbStates[source] = 0;
 }
 
 void Ham_destroy(Ham* ham) {
     zmq_close(ham->notifier);
     zmq_close(ham->listener);
     zmq_term(ham->ctx);
+    if(ham->coord) Vote_Shutdown(ham->coord);
     if(ham->hbStates) free(ham->hbStates);
     if(ham) free(ham);
 }

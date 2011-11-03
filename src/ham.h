@@ -10,7 +10,11 @@
 #include <time.h>
 #include <zmq.h>
 #include "topology.h"
+#include "message.h"
+#include "vote_coord.h"
 #include "dbg.h"
+
+#define HBTIMEOUT 5
 
 typedef struct Ham {
     int myID;
@@ -19,6 +23,7 @@ typedef struct Ham {
     void* notifier;
     Topology* topo;
     int* hbStates;
+    VoteCoord* coord;
 } Ham;
 
 // Open up sockets on network interfaces
@@ -34,7 +39,7 @@ void Ham_poll(Ham* ham, int timeout);
 void Ham_timeoutHBs(Ham* ham);
 
 // Process an incoming heartbeat message
-void Ham_procHB(Ham* ham, char* message);
+void Ham_procHB(Ham* ham, unsigned int source);
 
 // Tear down a system
 void Ham_destroy(Ham* ham);

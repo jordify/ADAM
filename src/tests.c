@@ -107,7 +107,7 @@ int test_VoteCoord_Init(void) {
     check(voter->activeVotes[3]->commitQuorum==commitQuorum, "commitQuorum not set");
     check(voter->activeVotes[3]->abortQuorum==abortQuorum, "abortQuorum not set");
 
-    Vote_Coord_Restart_Node(voter, 0);
+    voter->numActiveVotes--;
     Vote_Shutdown(voter);
     return(0);
 error:
@@ -115,15 +115,17 @@ error:
 }
 
 int test_VoteCoord_Simulate_Votes(void) {
+    Topology* topo = Topology_init();
+    Ham* ham = Ham_init(topo, 0);
     VoteCoord* voter = Vote_Startup(3);
     unsigned int deadID = 2;
     int commitQuorum = 3;
     int abortQuorum = 1;
 
     Vote_Coord_Init(voter, deadID, commitQuorum, abortQuorum);
-    Vote_Coord_Yay(voter, deadID);
-    Vote_Coord_Yay(voter, deadID);
-    Vote_Coord_Nay(voter, deadID);
+    Vote_Coord_Yay(voter, deadID, ham);
+    Vote_Coord_Yay(voter, deadID, ham);
+    Vote_Coord_Nay(voter, deadID, ham);
 
     check(voter->activeVotes[deadID]->votesNay==1, "votesNay not set");
     check(voter->activeVotes[deadID]->votesYay==2, "votesYay not set");
@@ -131,13 +133,15 @@ int test_VoteCoord_Simulate_Votes(void) {
 
     deadID--;
     Vote_Coord_Init(voter, deadID, commitQuorum, abortQuorum);
-    Vote_Coord_Yay(voter, deadID);
-    Vote_Coord_Yay(voter, deadID);
-    Vote_Coord_Yay(voter, deadID);
+    Vote_Coord_Yay(voter, deadID, ham);
+    Vote_Coord_Yay(voter, deadID, ham);
+    Vote_Coord_Yay(voter, deadID, ham);
     check(voter->activeVotes[deadID]->votesNay==0, "votesNay not set");
     check(voter->activeVotes[deadID]->votesYay==3, "votesYay not set");
     check(voter->numActiveVotes==0, "Active Votes not decreased");
 
+    Ham_destroy(ham);
+    Topology_destroy(topo);
     Vote_Shutdown(voter);
     return(0);
 error:
@@ -145,13 +149,15 @@ error:
 }
 
 int test_VoteCoord_Simultaneous_Votes(void) {
+    Topology* topo = Topology_init();
+    Ham* ham = Ham_init(topo, 0);
     VoteCoord* voter = Vote_Startup(3);
     unsigned int deadID = 2;
     int commitQuorum = 3;
     int abortQuorum = 1;
 
     Vote_Coord_Init(voter, deadID, commitQuorum, abortQuorum);
-    Vote_Coord_Yay(voter, deadID);
+    Vote_Coord_Yay(voter, deadID, ham);
 
     check(voter->activeVotes[deadID]->votesNay==0, "votesNay not set");
     check(voter->activeVotes[deadID]->votesYay==1, "votesYay not set");
@@ -159,20 +165,22 @@ int test_VoteCoord_Simultaneous_Votes(void) {
 
     deadID--;
     Vote_Coord_Init(voter, deadID, commitQuorum, abortQuorum);
-    Vote_Coord_Yay(voter, deadID);
-    Vote_Coord_Yay(voter, deadID);
-    Vote_Coord_Yay(voter, deadID);
+    Vote_Coord_Yay(voter, deadID, ham);
+    Vote_Coord_Yay(voter, deadID, ham);
+    Vote_Coord_Yay(voter, deadID, ham);
     check(voter->activeVotes[deadID]->votesNay==0, "votesNay not set");
     check(voter->activeVotes[deadID]->votesYay==3, "votesYay not set");
     check(voter->numActiveVotes==1, "Active Votes not decreased");
 
     deadID++;
-    Vote_Coord_Yay(voter, deadID);
-    Vote_Coord_Nay(voter, deadID);
+    Vote_Coord_Yay(voter, deadID, ham);
+    Vote_Coord_Nay(voter, deadID, ham);
     check(voter->activeVotes[deadID]->votesNay==1, "votesNay not set");
     check(voter->activeVotes[deadID]->votesYay==2, "votesYay not set");
     check(voter->numActiveVotes==0, "Active Votes not decreased");
 
+    Ham_destroy(ham);
+    Topology_destroy(topo);
     Vote_Shutdown(voter);
     return(0);
 error:

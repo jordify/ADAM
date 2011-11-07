@@ -9,7 +9,7 @@ dev: all
 
 addamd: topology.o ham.o logDB.o vote_coord.o message.o killNodes.o
 
-tests: vote_coord.o message.o killNodes.o
+tests: topology.o ham.o vote_coord.o message.o killNodes.o
 
 clean:
 	rm -f *.o core node*.db

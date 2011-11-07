@@ -1,6 +1,8 @@
 #include "ham.h"
 
 Ham* Ham_init(Topology* topo, unsigned int myID) {
+    VoteCoord* coord = NULL;
+    int* hbStates = NULL;
     unsigned int i = 0;
     // make a new Ham
     Ham* newHam = malloc(sizeof(Ham));
@@ -47,13 +49,13 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
 
     // Create intial health states (-1:=Not Monitored, 0,1,2,...
     // :=Number of missed heartbeats)
-    int* hbStates = malloc(topo->nodeCount*sizeof(int));
+    hbStates = malloc(topo->nodeCount*sizeof(int));
     for(i=0; i<topo->nodeCount; i++)
         hbStates[i] = -1;
     hbStates[myID] = 0;
 
     // Initialize a vote coordinator for this node's hb timeouts
-    VoteCoord* coord = Vote_Startup(topo->nodeCount);
+    coord = Vote_Startup(topo->nodeCount);
     check_mem(coord);
 
     // Set new ham structure

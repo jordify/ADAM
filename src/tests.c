@@ -3,7 +3,7 @@
 
 #include "dbg.h"
 #include "message.h"
-#include "vote_coord.h"
+#include "ham.h"
 
 /* Message class tests {{{ */
 int test_Message_Header_init(void) {

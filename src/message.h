@@ -14,7 +14,9 @@ typedef enum Opcodes {
   o_HEARTBEAT,
   o_VOTEREQ,
   o_VOTEYES,
-  o_VOTENO
+  o_VOTENO,
+  o_KILLACK,
+  o_KILLNACK
 } Opcodes;
 
 typedef struct Header {

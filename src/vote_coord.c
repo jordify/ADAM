@@ -1,4 +1,4 @@
-#include "vote_coord.h"
+#include "ham.h"
 
 VoteCoord* Vote_Startup(int systemSize) {
     int i;
@@ -8,7 +8,9 @@ VoteCoord* Vote_Startup(int systemSize) {
     self->nextVoteID = 0;
     self->numActiveVotes = 0;
     self->activeVotes = malloc(systemSize*sizeof(Vote*));
+    self->participatingVotes = malloc(systemSize*sizeof(int));
     for(i=0; i<systemSize; i++) {
+        self->participatingVotes[i] = 0;
         self->activeVotes[i] = malloc(sizeof(Vote));
         check_mem(self->activeVotes[i]);
         self->activeVotes[i]->voteID = 0;
@@ -54,54 +56,57 @@ void Vote_Coord_Init(VoteCoord* self, unsigned int deadID, int commitQuorum, int
     self->activeVotes[deadID]->commitQuorum = commitQuorum;
     self->activeVotes[deadID]->abortQuorum = abortQuorum;
     self->numActiveVotes++;
-
-    // Send out O_VOTEREQ with deadID
 }
 
-int Vote_Coord_Yay(VoteCoord* self, int deadID) {
+static int Vote_Coord_Restart_Node(VoteCoord* self, int deadID, Ham* ham) {
+    // Actuall kill the node
+    KillNodes_kill(deadID);
+    ham->hbStates[deadID] = -1;
+    
+    // Acknoweldge that the node has been restarted
+    Header* killHeader = Header_init(ham->myID, deadID, o_KILLACK);
+    zmq_msg_t message;
+    zmq_msg_init_size(&message, sizeof(Header));
+    memcpy(zmq_msg_data(&message), killHeader, sizeof(Header));
+    int rc = zmq_send(ham->notifier, &message, 0);
+    zmq_msg_close(&message);
+    Header_destroy(killHeader);
+
+    // Reset vote
+    self->activeVotes[deadID]->voteID = 0;
+    self->numActiveVotes--;
+    return(rc);
+}
+
+static int Vote_Coord_Abort(VoteCoord* self, int deadID, Ham* ham) {
+    // Send out abort
+    Header* killHeader = Header_init(ham->myID, deadID, o_KILLNACK);
+    zmq_msg_t message;
+    zmq_msg_init_size(&message, sizeof(Header));
+    memcpy(zmq_msg_data(&message), killHeader, sizeof(Header));
+    int rc = zmq_send(ham->notifier, &message, 0);
+    zmq_msg_close(&message);
+    Header_destroy(killHeader);
+
+    // Reset vote
+    self->activeVotes[deadID]->voteID = 0;
+    self->numActiveVotes--;
+    return(rc);
+}
+
+int Vote_Coord_Yay(VoteCoord* self, int deadID, Ham* ham) {
     self->activeVotes[deadID]->votesYay++;
     // Check if commit quorum reached
     if(self->activeVotes[deadID]->votesYay==self->activeVotes[deadID]->commitQuorum)
-        Vote_Coord_Restart_Node(self, deadID);
+        Vote_Coord_Restart_Node(self, deadID, ham);
     return(0);
 }
 
-int Vote_Coord_Nay(VoteCoord* self, int deadID) {
+int Vote_Coord_Nay(VoteCoord* self, int deadID, Ham* ham) {
     self->activeVotes[deadID]->votesNay++;
     // Check if abort quorum reached
     if(self->activeVotes[deadID]->votesNay==self->activeVotes[deadID]->abortQuorum)
-        Vote_Coord_Abort(self, deadID);
+        Vote_Coord_Abort(self, deadID, ham);
     return(0);
 }
-
-int Vote_Coord_Restart_Node(VoteCoord* self, int deadID) {
-    // Actuall kill the node
-    //printf("Killing node %d\n", deadID);
-    // Acknoweldge that the node has been restarted
-    // Reset vote
-    self->numActiveVotes--;
-    return(deadID);
-}
-
-int Vote_Coord_Abort(VoteCoord* self, int deadID) {
-    // Send out abort
-    // Reset vote
-    self->numActiveVotes--;
-    return(deadID);
-}
-
-/*
-void Vote_Voter_Request(int voteID, unsigned int deadID) {
-    // Check hamState
-    // Send O_VOTEYAY or O_VOTENAY depending on state
-}
-
-void Vote_Voter_Abort(int voteID, unsigned int notDeadID) {
-    // Do nothing (for logging purposes and future developement)
-}
-
-void Vote_Voter_Commit(int voteID, unsigned int deadID) {
-    // Set Ham state of deadID to -1
-}
-*/
 

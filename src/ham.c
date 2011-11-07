@@ -74,6 +74,17 @@ error:
     return(0);
 }
 
+int Ham_sendVoteReq(Ham* ham, unsigned char deadID) {
+    Header* voteHeader = Header_init(ham->myID, deadID, o_VOTEREQ);
+    zmq_msg_t message;
+    zmq_msg_init_size(&message, sizeof(Header));
+    memcpy(zmq_msg_data(&message), voteHeader, sizeof(Header));
+    int rc = zmq_send(ham->notifier, &message, 0);
+    zmq_msg_close(&message);
+    Header_destroy(voteHeader);
+    return(rc);
+}
+
 int Ham_beat(Ham* ham) {
     Header* beatHeader = Header_init(ham->myID, (unsigned char) -1, o_HEARTBEAT);
     zmq_msg_t message;
@@ -86,7 +97,7 @@ int Ham_beat(Ham* ham) {
     return(rc);
 }
 
-void Ham_poll(Ham* ham, int timeout) {
+int Ham_poll(Ham* ham, int timeout) {
 // TODO: Add ipc REP socket for communicating with libAddam
 
     /* Set up poll item */
@@ -95,17 +106,116 @@ void Ham_poll(Ham* ham, int timeout) {
     };
 
     zmq_msg_t message;
+    Header* incoming = malloc(sizeof(Header));
+
     zmq_poll(items, 1, timeout);
     if(items[0].revents & ZMQ_POLLIN) {
         zmq_msg_init(&message);
         zmq_recv(ham->listener, &message, 0);
         int size = zmq_msg_size(&message);
-        Header* beat = malloc(sizeof(Header));
-        memcpy(beat, zmq_msg_data(&message), size);
+        memcpy(incoming, zmq_msg_data(&message), size);
         zmq_msg_close(&message);
-        Ham_procHB(ham, beat->source);
-        free(beat);
+        // Detect message type and print it
+        switch(incoming->opcode) {
+            case o_HEARTBEAT:
+                debug("HB Message Received");
+                break;
+            case o_VOTEREQ:
+                debug("Vote Request Message Received for dead node %d", incoming->destination);
+                Ham_procVoteReq(ham, incoming->destination, incoming->source);
+                break;
+            case o_VOTEYES:
+                debug("Vote Yay Message Received");
+                Vote_Coord_Yay(ham->coord, incoming->destination, ham);
+                break;
+            case o_VOTENO:
+                debug("Vote Nay Message Received");
+                Vote_Coord_Nay(ham->coord, incoming->destination, ham);
+                break;
+            case o_KILLACK:
+                debug("Kill ACK Message Received");
+                Ham_procKill(ham, incoming->destination);
+                break;
+            case o_KILLNACK:
+                debug("Kill abort Message Received");
+                Ham_procKillAbort(ham, incoming->destination);
+                break;
+            default:
+                sentinel("Unknown Message Type %d", incoming->opcode);
+                break;
+        }
+        Ham_procHB(ham, incoming->source);
     }
+    if(incoming) free(incoming);
+    return(0);
+error:
+    if(incoming) free(incoming);
+    return(1);
+}
+
+void Ham_procKill(Ham* ham, unsigned char deadID) {
+    ham->coord->participatingVotes[deadID] = 0;
+    ham->hbStates[deadID] = -1;
+}
+
+void Ham_procKillAbort(Ham* ham, unsigned char deadID) {
+    ham->coord->participatingVotes[deadID] = 0;
+}
+
+void Ham_procVoteReq(Ham* ham, unsigned char deadID, unsigned char coordID) {
+    // Have I initiated a vote for this node?
+    if(ham->coord->activeVotes[deadID]->voteID) {
+        // Ignore vote request if coordID > myID
+        if(coordID>ham->myID) {
+            // Ignore
+            debug("Ignoring vote request from node %d", coordID);
+        } else {
+            // Reset my vote coordination
+            ham->coord->activeVotes[deadID]->voteID = 0;
+            ham->coord->numActiveVotes--;
+            // Participate in vote
+            ham->coord->participatingVotes[deadID] = 1;
+            if(ham->hbStates[deadID] >= HBTIMEOUT-1) {
+                debug("I vote %d is dead", deadID);
+                Ham_sendVoteYay(ham, deadID);
+            } else {
+                debug("I vote %d is not dead", deadID);
+                Ham_sendVoteNay(ham, deadID);
+            }
+        }
+    } else {
+        // Participate in vote
+        ham->coord->participatingVotes[deadID] = 1;
+        if(ham->hbStates[deadID] >= HBTIMEOUT-1) {
+            debug("I vote %d is dead", deadID);
+            Ham_sendVoteYay(ham, deadID);
+        } else {
+            debug("I vote %d is not dead", deadID);
+            Ham_sendVoteNay(ham, deadID);
+        }
+    }
+}
+
+int Ham_sendVoteYay(Ham* ham, unsigned char deadID) {
+    Header* voteHeader = Header_init(ham->myID, deadID, o_VOTEYES);
+    zmq_msg_t message;
+    zmq_msg_init_size(&message, sizeof(Header));
+    memcpy(zmq_msg_data(&message), voteHeader, sizeof(Header));
+    int rc = zmq_send(ham->notifier, &message, 0);
+    zmq_msg_close(&message);
+    Header_destroy(voteHeader);
+    return(rc);
+}
+
+int Ham_sendVoteNay(Ham* ham, unsigned char deadID) {
+    Header* voteHeader = Header_init(ham->myID, deadID, o_VOTENO);
+    zmq_msg_t message;
+    zmq_msg_init_size(&message, sizeof(Header));
+    memcpy(zmq_msg_data(&message), voteHeader, sizeof(Header));
+    int rc = zmq_send(ham->notifier, &message, 0);
+    zmq_msg_close(&message);
+    Header_destroy(voteHeader);
+    return(rc);
 }
 
 void Ham_timeoutHBs(Ham* ham) {
@@ -115,7 +225,10 @@ void Ham_timeoutHBs(Ham* ham) {
             ham->hbStates[i]++;
             if(ham->hbStates[i] >= HBTIMEOUT) {
                 debug("Node %d is dead", i);
-                Vote_Coord_Init(ham->coord, i, 2, 1);
+                if(!(ham->coord->participatingVotes[i])) {
+                    Vote_Coord_Init(ham->coord, i, 1, 1);
+                    Ham_sendVoteReq(ham, (unsigned char) i);
+                }
             }
         }
     ham->hbStates[ham->myID] = 0;

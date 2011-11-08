@@ -1,9 +1,10 @@
 Task List
-	Voting class
-		UT it
 	Python Orchestration util
 		Launching on Iota
 		Killing nodes in a known way
+	Issues
+		Need a way to communicate with a visualizer
+		Need to log activity to database as well as visualizer
 ----------------------------------------
 Need a logDB utility binary for reading the log for debugging
 	Just include logdb.h and convert from (int argc, char* argv[]) to (command, ...)

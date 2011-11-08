@@ -2,6 +2,7 @@
 
 Ham* Ham_init(Topology* topo, unsigned int myID) {
     VoteCoord* coord = NULL;
+    void* logger = NULL;
     int* hbStates = NULL;
     unsigned int i = 0;
     // make a new Ham
@@ -47,6 +48,13 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
         debug("Listener connected to %s", listenerConnAddress);
     }
 
+#ifndef NLOGGING
+    // Make logging socket
+    logger = zmq_socket(ctx, ZMQ_PUSH);
+    check(logger, "Logger creation failed");
+    zmq_connect(logger, "tcp://localhost:54321");
+#endif
+
     // Create intial health states (-1:=Not Monitored, 0,1,2,...
     // :=Number of missed heartbeats)
     hbStates = malloc(topo->nodeCount*sizeof(int));
@@ -63,6 +71,7 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
     newHam->ctx = ctx;
     newHam->listener = listener;
     newHam->notifier = notifier;
+    newHam->logger = logger;
     newHam->topo = topo;
     newHam->hbStates = hbStates;
     newHam->coord = coord;
@@ -70,6 +79,10 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
     // return ham
     return(newHam);
 error:
+    if(newHam->notifier) zmq_close(newHam->notifier);
+    if(newHam->listener) zmq_close(newHam->listener);
+    if(newHam->logger) zmq_close(newHam->logger);
+    if(newHam->ctx) zmq_term(newHam->ctx);
     if (coord) Vote_Shutdown(coord);
     if (hbStates) free(hbStates);
     if (newHam) free(newHam);
@@ -97,6 +110,15 @@ int Ham_beat(Ham* ham) {
     Header_destroy(beatHeader);
 
     return(rc);
+}
+
+int Ham_countLive(Ham* ham) {
+    unsigned int i;
+    int count = 0;
+    for(i=0; i<ham->topo->nodeCount; i++)
+        if(ham->hbStates[i]>=0)
+            count++;
+    return(count);
 }
 
 int Ham_poll(Ham* ham, int timeout) {
@@ -228,7 +250,8 @@ void Ham_timeoutHBs(Ham* ham) {
             if(ham->hbStates[i] >= HBTIMEOUT) {
                 debug("Node %d is dead", i);
                 if(!(ham->coord->participatingVotes[i])) {
-                    Vote_Coord_Init(ham->coord, i, 1, 1);
+                    int alive = Ham_countLive(ham);
+                    Vote_Coord_Init(ham->coord, i, alive/2, 1);
                     Ham_sendVoteReq(ham, (unsigned char) i);
                 }
             }
@@ -243,6 +266,7 @@ void Ham_procHB(Ham* ham, unsigned int source) {
 void Ham_destroy(Ham* ham) {
     zmq_close(ham->notifier);
     zmq_close(ham->listener);
+    zmq_close(ham->logger);
     zmq_term(ham->ctx);
     if(ham->coord) Vote_Shutdown(ham->coord);
     if(ham->hbStates) free(ham->hbStates);

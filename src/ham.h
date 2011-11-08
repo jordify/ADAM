@@ -46,6 +46,7 @@ typedef struct Ham {
     void* ctx;
     void* listener;
     void* notifier;
+    void* logger;
     Topology* topo;
     int* hbStates;
     VoteCoord* coord;

@@ -61,14 +61,24 @@ void Vote_Coord_Init(VoteCoord* self, unsigned int deadID, int commitQuorum, int
 static int Vote_Coord_Restart_Node(VoteCoord* self, int deadID, Ham* ham) {
     // Actuall kill the node
     KillNodes_kill(deadID);
+
+    // Log the kill
+    zmq_msg_t message;
+    char data[10];
+    snprintf(data, 9, "Kill %d", deadID);
+    data[10] = '\0';
+    zmq_msg_init_size(&message, strlen(data));
+    memcpy(zmq_msg_data(&message), data, strlen(data));
+    int rc = zmq_send(ham->logger, &message, 0);
+    zmq_msg_close(&message);
     ham->hbStates[deadID] = -1;
     
     // Acknoweldge that the node has been restarted
     Header* killHeader = Header_init(ham->myID, deadID, o_KILLACK);
-    zmq_msg_t message;
+    //zmq_msg_t message;
     zmq_msg_init_size(&message, sizeof(Header));
     memcpy(zmq_msg_data(&message), killHeader, sizeof(Header));
-    int rc = zmq_send(ham->notifier, &message, 0);
+    rc = zmq_send(ham->notifier, &message, 0);
     zmq_msg_close(&message);
     Header_destroy(killHeader);
 

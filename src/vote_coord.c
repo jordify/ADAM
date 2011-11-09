@@ -60,22 +60,18 @@ void Vote_Coord_Init(VoteCoord* self, unsigned int deadID, int commitQuorum, int
 
 static int Vote_Coord_Restart_Node(VoteCoord* self, int deadID, Ham* ham) {
     // Actuall kill the node
-    KillNodes_kill(deadID);
+    KillNodes_kill(ham->topo->nodeCount, deadID);
 
     // Log the kill
-    zmq_msg_t message;
     char data[10];
     snprintf(data, 9, "Kill %d", deadID);
     data[10] = '\0';
-    zmq_msg_init_size(&message, strlen(data));
-    memcpy(zmq_msg_data(&message), data, strlen(data));
-    int rc = zmq_send(ham->logger, &message, 0);
-    zmq_msg_close(&message);
+    int rc = logSomething(ham, data);
     ham->hbStates[deadID] = -1;
     
     // Acknoweldge that the node has been restarted
     Header* killHeader = Header_init(ham->myID, deadID, o_KILLACK);
-    //zmq_msg_t message;
+    zmq_msg_t message;
     zmq_msg_init_size(&message, sizeof(Header));
     memcpy(zmq_msg_data(&message), killHeader, sizeof(Header));
     rc = zmq_send(ham->notifier, &message, 0);
@@ -118,5 +114,17 @@ int Vote_Coord_Nay(VoteCoord* self, int deadID, Ham* ham) {
     if(self->activeVotes[deadID]->votesNay==self->activeVotes[deadID]->abortQuorum)
         Vote_Coord_Abort(self, deadID, ham);
     return(0);
+}
+
+int logSomething(Ham* ham, char* data) {
+    int rc = 0;
+#ifndef NEXTLOG
+    zmq_msg_t message;
+    zmq_msg_init_size(&message, strlen(data));
+    memcpy(zmq_msg_data(&message), data, strlen(data));
+    rc = zmq_send(ham->logger, &message, 0);
+    zmq_msg_close(&message);
+#endif
+    return (rc);
 }
 

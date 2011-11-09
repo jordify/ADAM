@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
 
 /**
  * Requires libxml2
@@ -59,6 +60,8 @@ Topology* Topology_init(void);
 int Topology_parseStatic(Topology* topo, const char* topoFileName);
 
 void Topology_destroy(Topology* topo);
+
+int Topology_detectID(Topology* topo);
 
 #endif
 

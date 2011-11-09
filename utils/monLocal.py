@@ -43,8 +43,8 @@ class Monitor(object):
         message = self.logger.recv()
         if self.verbose:
           print message
-        if message.split()[0] == "Kill":
-          subprocess.Popen(['./addamd', '../exampleTopos/local3.topo', message.split()[1]])
+#        if message.split()[0] == "Kill":
+#          subprocess.Popen(['./addamd', '../exampleTopos/local3.topo', message.split()[1]])
 
 if __name__=='__main__':
   parser = argparse.ArgumentParser(description='''Launch an example \

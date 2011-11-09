@@ -67,6 +67,8 @@ int Vote_Coord_Yay(VoteCoord* self, int deadID, Ham* ham);
 
 int Vote_Coord_Nay(VoteCoord* self, int deadID, Ham* ham);
 
+int logSomething(Ham* ham, char* data);
+
 //int Vote_Coord_Restart_Node(VoteCoord* self, int deadID);
 //
 //int Vote_Coord_Abort(VoteCoord* self, int deadID);

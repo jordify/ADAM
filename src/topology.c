@@ -208,3 +208,17 @@ void Topology_destroy(Topology* topo) {
     free(topo);
 }
 
+int Topology_detectID(Topology* topo) {
+    unsigned int i = 0;
+    char data[50];
+    int size = 50;
+    gethostname(data, size);
+    for(i=0; i<topo->nodeCount; i++)
+        if(strcmp(data, topo->allNodes[i]->name)==0)
+            break;
+    if(i==topo->nodeCount)
+        return(-1);
+    else
+        return(i);
+}
+

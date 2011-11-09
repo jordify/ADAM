@@ -11,6 +11,16 @@ addamd: topology.o ham.o logDB.o vote_coord.o message.o killNodes.o
 
 tests: topology.o ham.o vote_coord.o message.o killNodes.o
 
+local:
+	cp .killNodes.local killNodes.c
+
+iota:
+	cp .killNodes.iota killNodes.c
+
 clean:
 	rm -f *.o core node*.db
 	rm -f addamd tests
+
+pristene: 
+	rm -f killNodes.c
+pristene: clean

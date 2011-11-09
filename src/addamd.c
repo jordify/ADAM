@@ -27,22 +27,17 @@ int main(int argc, char* argv[]) {
     /* Some vars */
     Topology* topo = NULL;
     Ham* ham = NULL;
-    unsigned int myID = 0;
+    int myID = 0;
     int logID = 1;
     char message[51];
     int databaseActive = 0;
+    int rc = 0;
 
     /* Check arguments */
     if (argc != 3) {
         sentinel("\n\tUsage: %s <topology file> <node ID>\n", argv[0]);
         return(1);
     }
-    myID = (unsigned int)atoi(argv[2]);
-
-    /* Create the log */
-    int rc = Database_access('c', myID);
-    check(rc==0, "Log creation failed");
-    databaseActive = 1;
 
     /* Initialize the topology */
     topo = Topology_init();
@@ -52,11 +47,27 @@ int main(int argc, char* argv[]) {
     rc = Topology_parseStatic(topo, argv[1]);
     check(!rc, "Failed to parse the static topology file.");
 
+    /* Get my ID */
+    myID = (int)atoi(argv[2]);
+
+    /* If -1 then try to automagically start system */
+    if(myID==-1) {
+        myID = Topology_detectID(topo); // Detect my ID from hostname
+        if(myID==-1)
+            myID = 0;
+        KillNodes_startAll(topo->nodeCount, myID); // Start the other nodes
+    }
+
+    /* Create the log */
+    rc = Database_access('c', myID);
+    check(rc==0, "Log creation failed");
+    databaseActive = 1;
+
     /* Initialize the HAM layer */
     ham = Ham_init(topo, myID);
     check(ham, "Failed to initialize the HAM");
 
-    /* Log the parsing */
+    /* Log the topology parsing */
     snprintf(message, 50, "[%d] Topology parsed: %d links, %d nodes",
             myID, topo->linkCount, topo->nodeCount);
     rc = Database_access('s', myID, logID, message);
@@ -68,7 +79,10 @@ int main(int argc, char* argv[]) {
     unsigned int i = 0;
     s_catch_signals();
     while(1) {
+        /* Increment everyone's heartbeats */
         Ham_timeoutHBs(ham);
+
+        /* Poll for incoming for one second */
         clock_gettime(CLOCK_MONOTONIC, &now);
         memcpy(&target, &now, sizeof(struct timespec));
         target.tv_sec = now.tv_sec + 1;
@@ -82,30 +96,21 @@ int main(int argc, char* argv[]) {
             printf("\n");
 #endif
         }
+        /* Heart beat */
         Ham_beat(ham);
 
         if(s_interrupted)
             sentinel("Caught sigterm or sigint, nobly killing self...");
     }
 
-#ifndef NDEBUG
-    /* Print the log */
-    rc = Database_access('l', myID);
-    check(rc==0, "Log list failed");
-
-    /* Print the current hbState */
-    for(i=0; i<topo->nodeCount; i++)
-        printf("%d\t", ham->hbStates[i]);
-    printf("\n");
-#endif
-
-    /* Kill the Ham and topology */
+    /* Kill the Ham and topology, won't ever really get here */
     Ham_destroy(ham);
     Topology_destroy(topo);
     return(0);
 
 error:
     snprintf(message, 10, "[%d] Died", myID);
+    /* Log my own death */
     if(databaseActive) {
         Database_access('s', myID, logID, message);
         logID++;

@@ -1,0 +1,32 @@
+/* vim: set ft=c: */
+#include "killNodes.h"
+
+int KillNodes_kill(int systemSize, unsigned char nodeID) {
+    debug("Killing %d", nodeID);
+    KillNodes_startOne(systemSize, (int)nodeID);
+    return(0);
+}
+
+int KillNodes_startOne(int systemSize, int targetID) {
+    char command[100];
+    snprintf(command, 99, "~/ADAM/src/addamd ~/ADAM/exampleTopos/local%d.topo %d", 
+            systemSize, targetID);
+    debug("Launching: %s", command);
+    popen(command, "r");
+    return(0);
+}
+
+int KillNodes_startAll(int systemSize, int myID) {
+    int i;
+    for(i=0; i<systemSize; i++) {
+        if(i==myID)
+            continue;
+        char command[100];
+        snprintf(command, 99, "~/ADAM/src/addamd ~/ADAM/exampleTopos/local%d.topo %d",
+                systemSize, i);
+        debug("Launching: %s", command);
+        popen(command, "r");
+    }
+    return(i);
+}
+

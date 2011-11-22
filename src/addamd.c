@@ -32,6 +32,7 @@ int main(int argc, char* argv[]) {
     char message[51];
     int databaseActive = 0;
     int rc = 0;
+    int pid = 0;
 
     /* Check arguments */
     if (argc != 3) {
@@ -66,6 +67,12 @@ int main(int argc, char* argv[]) {
     /* Initialize the HAM layer */
     ham = Ham_init(topo, myID);
     check(ham, "Failed to initialize the HAM");
+
+    /* Log my PID to help kill me */
+    pid = getpid();
+    debug("My PID is %d", pid);
+    snprintf(message, 50, "[%d] pid %d", myID, pid);
+    rc = logSomething(ham, message);
 
     /* Log the topology parsing */
     snprintf(message, 50, "[%d] Topology parsed: %d links, %d nodes",

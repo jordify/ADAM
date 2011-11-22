@@ -65,7 +65,7 @@ static int Vote_Coord_Restart_Node(VoteCoord* self, int deadID, Ham* ham) {
     // Log the kill
     char data[10];
     snprintf(data, 9, "Kill %d", deadID);
-    data[10] = '\0';
+    data[9] = '\0';
     int rc = logSomething(ham, data);
     ham->hbStates[deadID] = -1;
     

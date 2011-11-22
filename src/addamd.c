@@ -108,6 +108,7 @@ int main(int argc, char* argv[]) {
 
         if(s_interrupted)
             sentinel("Caught sigterm or sigint, nobly killing self...");
+
     }
 
     /* Kill the Ham and topology, won't ever really get here */
@@ -122,6 +123,7 @@ error:
         Database_access('s', myID, logID, message);
         logID++;
     }
+    logSomething(ham, message);
     if(topo) Topology_destroy(topo);
     if(ham) Ham_destroy(ham);
     return(-1);

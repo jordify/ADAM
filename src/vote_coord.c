@@ -59,28 +59,31 @@ void Vote_Coord_Init(VoteCoord* self, unsigned int deadID, int commitQuorum, int
 }
 
 static int Vote_Coord_Restart_Node(VoteCoord* self, int deadID, Ham* ham) {
-    // Actuall kill the node
-    KillNodes_kill(ham->topo->nodeCount, deadID);
+    int rc = 0;
+    if(self->activeVotes[deadID]->voteID) {
+        // Actuall kill the node
+        KillNodes_kill(ham->topo->nodeCount, deadID);
 
-    // Log the kill
-    char data[10];
-    snprintf(data, 9, "Kill %d", deadID);
-    data[9] = '\0';
-    int rc = logSomething(ham, data);
-    ham->hbStates[deadID] = -1;
-    
-    // Acknoweldge that the node has been restarted
-    Header* killHeader = Header_init(ham->myID, deadID, o_KILLACK);
-    zmq_msg_t message;
-    zmq_msg_init_size(&message, sizeof(Header));
-    memcpy(zmq_msg_data(&message), killHeader, sizeof(Header));
-    rc = zmq_send(ham->notifier, &message, 0);
-    zmq_msg_close(&message);
-    Header_destroy(killHeader);
+        // Log the kill
+        char data[50];
+        snprintf(data, 49, "[%d] Kill %d", ham->myID, deadID);
+        data[49] = '\0';
+        rc = logSomething(ham, data);
+        ham->hbStates[deadID] = -1;
+        
+        // Acknoweldge that the node has been restarted
+        Header* killHeader = Header_init(ham->myID, deadID, o_KILLACK);
+        zmq_msg_t message;
+        zmq_msg_init_size(&message, sizeof(Header));
+        memcpy(zmq_msg_data(&message), killHeader, sizeof(Header));
+        rc = zmq_send(ham->notifier, &message, 0);
+        zmq_msg_close(&message);
+        Header_destroy(killHeader);
 
-    // Reset vote
-    self->activeVotes[deadID]->voteID = 0;
-    self->numActiveVotes--;
+        // Reset vote
+        self->activeVotes[deadID]->voteID = 0;
+        self->numActiveVotes--;
+    }
     return(rc);
 }
 
@@ -101,18 +104,22 @@ static int Vote_Coord_Abort(VoteCoord* self, int deadID, Ham* ham) {
 }
 
 int Vote_Coord_Yay(VoteCoord* self, int deadID, Ham* ham) {
-    self->activeVotes[deadID]->votesYay++;
-    // Check if commit quorum reached
-    if(self->activeVotes[deadID]->votesYay==self->activeVotes[deadID]->commitQuorum)
-        Vote_Coord_Restart_Node(self, deadID, ham);
+    if(self->activeVotes[deadID]->voteID) {
+        self->activeVotes[deadID]->votesYay++;
+        // Check if commit quorum reached
+        if(self->activeVotes[deadID]->votesYay==self->activeVotes[deadID]->commitQuorum)
+            Vote_Coord_Restart_Node(self, deadID, ham);
+    }
     return(0);
 }
 
 int Vote_Coord_Nay(VoteCoord* self, int deadID, Ham* ham) {
-    self->activeVotes[deadID]->votesNay++;
-    // Check if abort quorum reached
-    if(self->activeVotes[deadID]->votesNay==self->activeVotes[deadID]->abortQuorum)
-        Vote_Coord_Abort(self, deadID, ham);
+    if(self->activeVotes[deadID]->voteID) {
+        self->activeVotes[deadID]->votesNay++;
+        // Check if abort quorum reached
+        if(self->activeVotes[deadID]->votesNay==self->activeVotes[deadID]->abortQuorum)
+            Vote_Coord_Abort(self, deadID, ham);
+    }
     return(0);
 }
 

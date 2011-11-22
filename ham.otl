@@ -1,3 +1,5 @@
+Bugs
+	0 can't die due to how the processes are launched
 Task List
 	Python Orchestration util
 		Launching on Iota

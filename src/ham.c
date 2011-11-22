@@ -97,6 +97,11 @@ int Ham_sendVoteReq(Ham* ham, unsigned char deadID) {
     int rc = zmq_send(ham->notifier, &message, 0);
     zmq_msg_close(&message);
     Header_destroy(voteHeader);
+
+    // Log the vote req
+    char data[50];
+    snprintf(data, 49, "[%d] Requested Vote for %d", ham->myID, deadID);
+    logSomething(ham, data);
     return(rc);
 }
 
@@ -142,7 +147,7 @@ int Ham_poll(Ham* ham, int timeout) {
         // Detect message type and print it
         switch(incoming->opcode) {
             case o_HEARTBEAT:
-                debug("HB Message Received");
+                //debug("HB Message Received");
                 break;
             case o_VOTEREQ:
                 debug("Vote Request Message Received for dead node %d", incoming->destination);
@@ -187,7 +192,7 @@ void Ham_procKillAbort(Ham* ham, unsigned char deadID) {
 }
 
 void Ham_procVoteReq(Ham* ham, unsigned char deadID, unsigned char coordID) {
-    // Have I initiated a vote for this node?
+    // Am I coordinating a vote for this node?
     if(ham->coord->activeVotes[deadID]->voteID) {
         // Ignore vote request if coordID > myID
         if(coordID>ham->myID) {
@@ -210,7 +215,7 @@ void Ham_procVoteReq(Ham* ham, unsigned char deadID, unsigned char coordID) {
     } else {
         // Participate in vote
         ham->coord->participatingVotes[deadID] = 1;
-        if(ham->hbStates[deadID] >= HBTIMEOUT-1) {
+        if(ham->hbStates[deadID] >= HBTIMEOUT-1 || ham->hbStates[deadID] < 0) {
             debug("I vote %d is dead", deadID);
             Ham_sendVoteYay(ham, deadID);
         } else {

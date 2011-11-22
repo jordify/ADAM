@@ -27,15 +27,15 @@ typedef struct Vote {
 
 typedef struct VoteCoord {
     int systemSize;
-    int nextVoteID;
     /* Needs to be set to 0 before any votes take place
      * Will act like Lamport clock, being incremented when new vote
      * takes place outside of node to that latest vote's ID
      */
-    int numActiveVotes;
+    int nextVoteID;
     /* Number of active votes the node is coordinating */
-    Vote** activeVotes;
+    int numActiveVotes;
     /* Array of active votes the node is coordinating */
+    Vote** activeVotes;
     int* participatingVotes;
     int numParticpatingVotes;
 } VoteCoord;
@@ -77,11 +77,13 @@ int logSomething(Ham* ham, char* data);
 // Open up sockets on network interfaces
 Ham* Ham_init(Topology* topo, unsigned int myID);
 
-// Request vote *SHOULD BE IN MESSAGE CLASS*
-int Ham_sendVote(Ham* ham, unsigned char deadID);
+// Request vote
+int Ham_sendVoteReq(Ham* ham, unsigned char deadID);
 
+// Process a kill
 void Ham_procKill(Ham* ham, unsigned char deadID);
 
+// Process a kill abort
 void Ham_procKillAbort(Ham* ham, unsigned char deadID);
 
 // Send out a heart beat to all subscribers
@@ -93,8 +95,10 @@ int Ham_poll(Ham* ham, int timeout);
 // Process an incoming vote request
 void Ham_procVoteReq(Ham* ham, unsigned char deadID, unsigned char coordID);
 
+// Vote yes
 int Ham_sendVoteYay(Ham* ham, unsigned char deadID);
 
+// Vote no
 int Ham_sendVoteNay(Ham* ham, unsigned char deadID);
 
 // Increment everyone's hbState

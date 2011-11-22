@@ -134,7 +134,7 @@ int Database_access(char command, ...) {
     Connection* conn = NULL;
 
     int filenameID = va_arg(argp, int);
-    debug("Log file ID is %d", filenameID);
+    //debug("Log file ID is %d", filenameID);
     if(filenameID < 0)
         sentinel("Need a fileID to use log.");
     snprintf(filename, 49, "node%d.db", filenameID);

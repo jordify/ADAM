@@ -1,6 +1,6 @@
 #!/usr/bin/python2.7
 
-import sys, argparse, subprocess, time
+import sys, argparse, subprocess, datetime, time
 from multiprocessing import Process
 import zmq
 
@@ -22,24 +22,27 @@ class Monitor(object):
       if self.logger in socks and socks[self.logger] == zmq.POLLIN:
         message = self.logger.recv()
         if self.verbose:
-          print time.time(), message
+          now = datetime.datetime.now()
+          #print "%d %s" % (now, message)
+          print "%d:%d.%d %s" % (now.minute, now.second, now.microsecond, message)
         if message.split()[1] == "Died":
-          self.nodeDies(int(round(time.time()*1000)), message)
+          self.nodeDies(datetime.datetime.now(), message)
         if message.split()[1] == "pid":
-          self.nodePID(int(round(time.time()*1000)), message)
+          self.nodePID(datetime.datetime.now(), message)
 
   def nodeDies(self, time, message):
     self.pidDict[int(message.split()[0].split('[')[1][:-1])] = time
-    if self.verbose:
-      print self.pidDict
+#    if self.verbose:
+#      print self.pidDict
 
   def nodePID(self, time, message):
     key = int(message.split()[0].split('[')[1][:-1])
     if key in self.pidDict.keys():
-      print time-self.pidDict[key]
+      timeDiff = time-self.pidDict[key]
+      print "%d.%d" % (timeDiff.seconds, timeDiff.microseconds)
     self.pidDict[key] = time
-    if self.verbose:
-      print self.pidDict
+#    if self.verbose:
+#      print self.pidDict
 
 if __name__=='__main__':
   parser = argparse.ArgumentParser(description='''Launch an example \

@@ -52,7 +52,7 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
     // Make logging socket
     logger = zmq_socket(ctx, ZMQ_PUSH);
     check(logger, "Logger creation failed");
-    zmq_connect(logger, "tcp://localhost:54321");
+    zmq_connect(logger, "tcp://iota:54321");
 #endif
 
     // Create intial health states (-1:=Not Monitored, 0,1,2,...

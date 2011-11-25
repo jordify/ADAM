@@ -23,7 +23,6 @@ class Monitor(object):
         message = self.logger.recv()
         if self.verbose:
           now = datetime.datetime.now()
-          #print "%d %s" % (now, message)
           print "%d:%d.%d %s" % (now.minute, now.second, now.microsecond, message)
         if message.split()[1] == "Died":
           self.nodeDies(datetime.datetime.now(), message)
@@ -32,8 +31,6 @@ class Monitor(object):
 
   def nodeDies(self, time, message):
     self.pidDict[int(message.split()[0].split('[')[1][:-1])] = time
-#    if self.verbose:
-#      print self.pidDict
 
   def nodePID(self, time, message):
     key = int(message.split()[0].split('[')[1][:-1])
@@ -41,8 +38,6 @@ class Monitor(object):
       timeDiff = time-self.pidDict[key]
       print "%d.%d" % (timeDiff.seconds, timeDiff.microseconds)
     self.pidDict[key] = time
-#    if self.verbose:
-#      print self.pidDict
 
 if __name__=='__main__':
   parser = argparse.ArgumentParser(description='''Launch an example \

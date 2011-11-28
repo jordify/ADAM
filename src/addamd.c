@@ -33,6 +33,8 @@ int main(int argc, char* argv[]) {
     int databaseActive = 0;
     int rc = 0;
     int pid = 0;
+    struct timespec startTime, endTime;
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
 
     /* Check arguments */
     if (argc != 3) {
@@ -80,6 +82,12 @@ int main(int argc, char* argv[]) {
     rc = Database_access('s', myID, logID, message);
     check(rc==0, "Log set failed");
     logID++;
+
+    /* Print start-up time */
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    long diffTime = (((endTime.tv_sec - startTime.tv_sec)*1000000) + 
+        (endTime.tv_nsec - startTime.tv_nsec)+500)/1000;
+    debug("Start-up time (ns)= %ld", diffTime);
 
     /* Poll for events and heartbeat */
     struct timespec now, target;

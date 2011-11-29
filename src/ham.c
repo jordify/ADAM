@@ -48,7 +48,7 @@ Ham* Ham_init(Topology* topo, unsigned int myID) {
         debug("Listener connected to %s", listenerConnAddress);
     }
 
-#ifndef NLOGGING
+#ifndef NEXTLOG
     // Make logging socket
     logger = zmq_socket(ctx, ZMQ_PUSH);
     check(logger, "Logger creation failed");
@@ -121,7 +121,7 @@ int Ham_countLive(Ham* ham) {
     unsigned int i;
     int count = 0;
     for(i=0; i<ham->topo->nodeCount; i++)
-        if(ham->hbStates[i]>=0)
+        if(ham->hbStates[i]>=0 && ham->hbStates[i]<HBTIMEOUT)
             count++;
     return(count);
 }
@@ -256,7 +256,8 @@ void Ham_timeoutHBs(Ham* ham) {
                 debug("Node %d is dead", i);
                 if(!(ham->coord->participatingVotes[i])) {
                     int alive = Ham_countLive(ham);
-                    Vote_Coord_Init(ham->coord, i, alive/2, 1);
+                    debug("Number alive is %d, commit quorum is %d", alive, 1+alive/2);
+                    Vote_Coord_Init(ham->coord, i, 1+alive/2, 1);
                     Ham_sendVoteReq(ham, (unsigned char) i);
                 }
             }
